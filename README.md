@@ -105,13 +105,11 @@ This project is divided into two parts:
   - Multi-scale CNN: Byte-level features via 1D convolutions (kernels: 3, 5, 7, 11) + embedding layer for byte sequences
   - Statistical feature extractor: 278-dimensional vector (256-bin histogram, 10 statistical, 12 structural features)
   - Combined classifier: Concatenates CNN embeddings (512-dim) with statistical features (64-dim) for final prediction
-- **Dual-head classification**:
+- **Dual-head Classification**:
   - **Trojan Detector**: Benign vs Malicious (trained via CNN)
   - **Family Classifier**: CRYPTO, COMMS, MCU/CPU, BUS/DISPLAY, ITC99, ISCAS89 (Random Forest on statistical features)
-- **Model optimization**: GridSearchCV hyperparameter tuning, early stopping, learning rate scheduling
-- Optional TSVD for dimensionality reduction (`--tsvd`)
-- Optional SMOTE for class imbalance handling (`--smote`)
-- Export format: PyTorch `.pt` for CNN, JSON for Random Forest (lightweight edge deployment)
+- **Model Optimization**: GridSearchCV hyperparameter tuning, early stopping, learning rate scheduling
+- Export Format: PyTorch `.pt` for CNN, JSON for Random Forest (lightweight edge deployment)
 
 ---
 
