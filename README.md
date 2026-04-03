@@ -5,33 +5,57 @@
 
 ## 📌 Project Overview
 
-This repository contains an embedded deployment pipeline for detecting **malicious FPGA bitstreams** using a trained machine learning (ML) model. Bitstreams are configuration files that can be weaponized to introduce hardware Trojans, posing serious risks in shared or cloud-hosted reconfigurable systems. This project leverages a lightweight, byte-level classification approach and enables **on-device malware detection** for **PYNQ-supported FPGA boards**, without requiring reverse engineering techniques or access to original source code or netlists. The pipeline features **dual-head classification** for both Trojan detection and hardware family identification across six categories. Benchmark designs from Trust-Hub (AES, RS232, ITC'99, ISCAS'89, etc.) were synthesized, implemented, and used for training and validation.
+This repository contains an embedded deployment pipeline for detecting **malicious FPGA bitstreams** using a trained deep learning (DL) model. Bitstreams are configuration files that can be weaponized to introduce hardware Trojans, posing serious risks in shared or cloud-hosted reconfigurable systems. This project leverages a lightweight, byte-level classification approach and enables **on-device malware detection** for **PYNQ-supported FPGA boards**, without requiring reverse engineering techniques or access to original source code or netlists. The pipeline features **dual-head classification** for both Trojan detection and hardware family identification across seven categories. Benchmark designs from Trust-Hub (AES, RS232, ITC'99, ISCAS'89, etc.) were synthesized, implemented, and used for training and validation.
 
 ---
 
 ## ⚙️ Features
-
-- 🔍 **Byte-frequency analysis** of binary `.bit` files
-- 🧩 Lightweight **byte-level + statistical** feature extraction
-- 📊 Real-time inference using a supervised **Random Forest** with a custom, dependency-light predictor
-- ⚡ Deployment-ready for **ARMv7 (e.g., PYNQ-Z1/Z2, Zynq-7000 SoC)** and **ARMv8 (e.g., Zynq UltraScale+ MPSoC, RFSoC, Kria) boards**
-- 🧪 Verified with state-of-the-art (SOTA) bitstreams derived from **Trust-Hub** benchmarks
+- ⛏️ **Feature Extraction**:
+  - **Byte Sequences**: Multi-scale 1D convolutions on byte sequences (kernels 3, 5, 7, 11) + embedding layer → 512-dim Convolutional Neural Network (CNN)
+  - **Statistical Features**: 278-dimensional feature vector (256-bin byte histogram + 10 statistical + 12 structural features) → 64-dim Multi-layer Perception (MLP)
+- 🧠 **Hybrid CNN + Random Forest**:
+  - **Trojan Detector**: Byte sequence CNN features (512 dimenstions) + statistical MLP features (64 dimenstions) → binary trojan classification (Benign vs Malicious)
+  - **Family Classifier**: Random Forest trained on statistical features only with GridSearchCV-tuned hyperparameters → 7-class hardware family identifier (CRYPTO, COMMS, MCU, BUS, ITC99, ISCAS89, ISCAS85)
+- 📊 Real-time inference with confidence scores and threat assessment on ARMv7/ARMv8 devices
+- ☁️ Includes a simulated **cloud-to-edge deployment pipeline** with Vivado automation (TCL), benchmark synthesis, constraint file selection, bitstream generation, and SSH deployment to PYNQ
+- ⚡ **ARMv7 (PYNQ-Z1/Z2, Zynq-7000)** and **ARMv8 (Zynq UltraScale+, RFSoC, Kria)** support via PYNQ
+- 🧪 End-to-end validated with state-of-the-art (SOTA) **Trust-Hub** benchmarks
 
 ---
 
 ## 📂 Repository Structure
-pynq-maldetect/<br>
-├── trusthub_bitstreams.zip ***# Sample `.bit` files (Benign or Malicious)***<br>
-├── model_components/ ***# Output directory for trained models***<br>
-├── LICENSE.md<br>
-├── PYNQ_BLADEI.tar.gz ***# Pre-trained models***<br>
+PYNQ_BLADEI/<br>
 ├── README.md<br>
-├── deploy_model.py ***# Model deployment for on-device inference***<br>
-├── requirements.txt ***# Python dependencies for training***<br>
-└── train_model.py ***# Model training and export for PYNQ***<br>
+├── LICENSE.md<br>
+├── requirements.txt ***# Python dependencies (torch, sklearn, numpy, scipy)***<br>
+├── train_model.py ***# Hybrid CNN + RF training pipeline***<br>
+├── deploy_model.py ***# On-device inference for PYNQ***<br>
+├── PYNQ_BLADEI.tar.gz ***# Pre-trained models (CNN, Random Forest, scalers and metadata)***<br>
+├── trusthub_bitstreams.zip ***# Sample `.bit` files (benign/malicious variants)***<br>
+├── model_components/ ***# Output directory for trained models***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── cnn_predictor.py ***# Lightweight CNN for deployment***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── family_rf.json ***# Random Forest classifier***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── scaler.json ***# Feature scaler parameters***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── meta.json ***# Model metadata***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;└── cnn_trojan.pt ***# Pre-trained CNN model***<br>
+└── deployment_pipeline/ ***# Complete local build and edge deployment workflow***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── start_demo.sh ***# Main orchestrator (Linux/macOS)***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── start_demo.ps1 ***# Main orchestrator (Windows)***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── pynq_ip.sh ***# PYNQ network configuration (Linux/macOS)***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── pynq_ip.ps1 ***# PYNQ network configuration (Windows)***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── default_ip.sh ***# Network restoration (Linux/macOS)***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── default_ip.ps1 ***# Network restoration (Windows)***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── run_random_build.tcl ***# Vivado TCL script (synthesis, implementation, bitstream)***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── Constraints/ ***# PYNQ-Z1 XDC constraint files***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── mock_deployment/ ***# Output directory for generated bitstreams***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;└── trusthub_pynq_z1/ ***# Xilinx project for generating bitstreams***<br>
 
 > ⚠️ **Notice:**
-> Due to file size constraints, the sample dataset (`trusthub_bitstreams/`) is hosted separately on the [Releases](https://github.com/Bread2002/PYNQ_BLADEI/releases/tag/v3.0.0) page. The file is password-protected, however, access is available upon request: ryes@email.sc.edu
+> Due to file size constraints, the sample datasets are hosted separately on the [Releases](https://github.com/Bread2002/PYNQ_BLADEI/releases/tag/v4.0.0) page:
+> - `trusthub_bitstreams.tar.gz.enc` — Benign and malicious bitstreams for model training and validation
+> - `trusthub_benchmarks.tar.gz.enc` — Re-engineered benchmark designs for the deployment pipeline (place in `deployment_pipeline/`)
+> 
+> Both files are password-protected, but access is available upon request: ryes@email.sc.edu
 
 ---
 
@@ -47,8 +71,9 @@ This project is divided into two parts:
 ### 🧠 `train_model.py` — Model Training and Export
 
 > **Requirements:**
-> - Python 3.8+
-> - Python Packages: `scikit-learn`, `numpy`, `scipy`, `imblearn`
+> - Python 3.7+
+> - PyTorch 1.2.0+ (for the hybrid CNN)
+> - scikit-learn, numpy, scipy (for classical ML and feature extraction)
 
 > ⚠️ **Note:**
 > Training should be performed on a general-purpose machine (laptop, workstation, or server) for **both ARMv7 and ARMv8** targets. While some ARMv8 boards *may* be capable of training, it is not the recommended workflow. Training is heavier, package availability can be inconsistent, and it’s typically slower and less reproducible than running on a PC.  
@@ -58,46 +83,55 @@ This project is divided into two parts:
    git clone https://github.com/Bread2002/PYNQ_BLADEI.git
    cd PYNQ_BLADEI
    ```
+
+2. Create a Conda Environment:
+   ```bash
+   conda create --name bladei python=3.7
+   conda activate bladei
+   ```
    
-2. Install Dependencies:
+3. Install Dependencies from requirements.txt:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Run the Training Script:
+4. Run the Training Script:
    ```bash
-   python train_model.py
+   python3 train_model.py
    ```
    
-4. Optional Flags for TSVD and SMOTE:
+5. Optional Flags for TSVD and SMOTE:
    ```bash
-   python train_model.py --tsvd  # Enable TSVD dimensionality reduction
-   python train_model.py --smote  # Enable SMOTE oversampling
-   python train_model.py --tsvd --smote  # Enable both
+   python3 train_model.py --tsvd  # Enable TSVD dimensionality reduction
+   python3 train_model.py --smote  # Enable SMOTE oversampling
+   python3 train_model.py --tsvd --smote  # Enable both
    ```
 
-#### Features:
-- **278-dimensional feature extraction** from `.bit` files:
-  - 256-bin normalized byte histogram
-  - 10 statistical features (mean, std, skew, kurtosis, entropy, etc.)
-  - 12 structural features (header patterns, segment analysis)
+#### Architecture:
+- **Hybrid CNN + Random Forest design**:
+  - Multi-scale CNN: Byte-level features via 1D convolutions (kernels: 3, 5, 7, 11) + embedding layer for byte sequences
+  - Statistical feature extractor: 278-dimensional vector (256-bin histogram, 10 statistical, 12 structural features)
+  - Combined classifier: Concatenates CNN embeddings (512-dim) with statistical features (64-dim) for final prediction
 - **Dual-head classification**:
-  - Trojan Detector (Benign vs Malicious)
-  - Family Classifier (CRYPTO, COMMS, MCU/CPU, BUS/DISPLAY, ITC99, and ISCAS89)
-- **Automated model selection** via classifier comparison and GridSearchCV hyperparameter tuning
+  - **Trojan Detector**: Benign vs Malicious (trained via CNN)
+  - **Family Classifier**: CRYPTO, COMMS, MCU/CPU, BUS/DISPLAY, ITC99, ISCAS89 (Random Forest on statistical features)
+- **Model optimization**: GridSearchCV hyperparameter tuning, early stopping, learning rate scheduling
 - Optional TSVD for dimensionality reduction (`--tsvd`)
 - Optional SMOTE for class imbalance handling (`--smote`)
-- Quantized model export as JSON for lightweight edge deployment
+- Export format: PyTorch `.pt` for CNN, JSON for Random Forest (lightweight edge deployment)
 
 ---
 
 ### ⚙️ `deploy_model.py` — On-Device Inference
 
 > **Requirements:**
-> - A supported FPGA board with PYNQ v3.1
-> - Quantized model components (via on-board training or exported archive)
+> - A supported FPGA board with PYNQ v2.4+
+> - Model components (via pre-trained archive)
 
-1. Import the Archive to your PYNQ board via Jupyter Notebook or SSH/SFTP
+> ⚠️ **Note:**
+> If you are deploying to an **ARMv7** board, the official PYNQ images do not include PyTorch. The [PYNQ-Torch Project](https://github.com/Xilinx/PYNQ-Torch) provides a pre-built image of PYNQ v2.4 with PyTorch v1.2 optimized for ARMv7 boards. Download the [PYNQ-Torch v1.0 Image](https://github.com/manoharvhr/PYNQ-Torch/releases/tag/v1.0) to eliminate compatibility issues and optimize BLADEI for your device.
+
+1. Import the Model Archive to your PYNQ board via Jupyter Notebook or SSH/SFTP
 
 2. Decompress the Archive:
     ```bash
@@ -107,25 +141,83 @@ This project is divided into two parts:
     cd PYNQ_BLADEI
     ```
 
-3. Create a Deployment Directory:
-    ```bash
-    mkdir -p mock_deployment  # Add your bitstreams here for deployment
-    ```
-
-4. Run the Deployment Script:
+3. Run the Deployment Script:
    ```bash
-   python deploy_model.py ./mock_deployment/bitstream.bit
+   python3 deploy_model.py ./mock_deployment/bitstream.bit
    ```
 
 #### Features:
 - Loads `.bit` files from local storage or command line argument
 - Extracts 278-dimensional feature vector (byte histogram + statistical + structural)
+- Passes byte sequence to loaded CNN model for trojan detection
+- Classifies hardware family using Random Forest model
 - Displays prediction results with confidence scores
 - Latency breakdown
-  - Load time
-  - Feature extraction time
-  - Inference time
+  - Load time (ms)
+  - Feature extraction time (ms)
+  - Prediction time (ms)
+- Performance metrics
+  - File size (MB)
+  - Throughput (MB/s)
+  - CPU usage (%)
+  - Memory usage (MB)
 - Automatically quarantines malicious bitstreams
+
+---
+
+## ☁️ Deployment Pipeline
+
+After training and deploying BLADEI, the included **deployment pipeline** orchestrates a complete local cloud-to-edge workflow for Trojan detection using your local machine and PYNQ board. This allows you to generate, deploy, and test FPGA bitstreams in a simulated real-time pipeline. The pipeline demonstrates BLADEI's end-to-end capability for integrating bitstream security into a production FPGA deployment workflow.
+
+### Pipeline Components
+
+The `deployment_pipeline/` subdirectory contains everything needed to operate BLADEI end-to-end:
+
+- **`start_demo.sh` / `start_demo.ps1`** — Main orchestrator for Linux/macOS and Windows respectively: Builds bitstreams locally using Vivado, then deploys to PYNQ board for vetting
+- **`run_random_build.tcl`** — Vivado automation script: Manages synthesis, implementation, and bitstream generation
+- **`pynq_ip.sh` / `pynq_ip.ps1`** — Network configuration scripts for PYNQ board access
+- **`default_ip.sh` / `default_ip.ps1`** — Network restoration scripts to return to DHCP
+- **`trusthub_benchmarks/`** — Re-engineered benchmark designs from Trust-Hub (AES, RS232, ITC'99, ISCAS'89, etc.) in both benign and malicious variants
+- **`Constraints/`** — PYNQ-Z1 constraint files for different benchmark types (AES, RS232, VHDL-based designs)
+
+> **Requirements:**
+> - A supported FPGA board with PYNQ v2.4+
+> - Vivado v2023.2 or compatible version installed on your machine
+> - All re-engineered benchmarks in the `deployment_pipeline/` subdirectory
+> - OpenSSH installed (Windows users: included in Windows 10/11)
+
+### Running the Pipeline
+
+#### Linux / macOS:
+1. Configure Environment Variables:
+   ```bash
+   export VIVADO_SETTINGS=/path/to/vivado/settings.sh
+   export BENCH_ROOT=/path/to/benchmarks
+   export PYNQ_HOST=xilinx@192.168.2.99
+   export PYNQ_PASS=xilinx
+   ```
+
+2. Run the Pipeline:
+   ```bash
+   cd deployment_pipeline
+   chmod +x start_demo.sh pynq_ip.sh default_ip.sh
+   ./start_demo.sh
+   ```
+
+#### Windows:
+1. Configure Environment Variables:
+   ```powershell
+   $env:VIVADO_SETTINGS="C:\Xilinx\Vivado\2023.2\settings64.bat"
+   $env:BENCH_ROOT="path\to\benchmarks"
+   $env:PYNQ_HOST="xilinx@192.168.2.99"
+   $env:PYNQ_PASS="xilinx"
+   ```
+
+2. Run the pipeline (PowerShell as Administrator):
+   ```powershell
+   cd deployment_pipeline
+   powershell -ExecutionPolicy Bypass -File start_demo.ps1
+   ```
 
 ---
 
@@ -194,32 +286,57 @@ Total RAM: 491.6640625 MB<br>
 ---
 
 ## 🤝 Acknowledgments
-The authors were pleased to have this work accepted for presentation at the 37th annual ACM/ IEEE Supercomputing Conference. This work was supported by the McNair Junior Fellowship and Office of Undergraduate Research at the University of South Carolina. OpenAl's ChatGPT assisted with language and grammar correction. While this project utilizes benchmark designs from Trust-Hub, a resource sponsored by the National Science Foundation (NSF), all technical content and analysis were independently developed by the authors. This research also utilized PYNQ, provided by AMD and Xilinx, whose tools and hardware facilitated the synthesis and deployment stages of this study. Access to the FPGA devices was made possible through the AMD University Program.
+The authors were pleased to have this work accepted for presentation at the 37th annual ACM/ IEEE Supercomputing Conference and IEEE SoutheastCon 2026. This work was supported by the McNair Junior Fellowship and Office of Undergraduate Research at the University of South Carolina. OpenAl's ChatGPT and Anthropic's Claude assisted with language and grammar correction. While this project utilizes benchmark designs from Trust-Hub, a resource sponsored by the National Science Foundation (NSF), all technical content and analysis were independently developed by the authors. This research also utilized PYNQ, provided by AMD and Xilinx, whose tools and hardware facilitated the synthesis and deployment stages of this study. Access to the FPGA devices was made possible through the AMD University Program.
 
 ---
 
 ## 🛠️ Future Work
-- Develop a real-time, simulated cloud-to-edge deployment pipeline (HDL → Synthesis → BLADEI → FPGA)
-- Explore deep learning architectures (CNN, RNN, LSTM/ Transformer, etc.) for improved feature learning and detection accuracy
+- Explore additional deep learning architectures (RNN, LSTM, Transformer, etc.) for further performance improvements
+- Modify framework to support hardware acceleration
+- ~~Implement hybrid CNN + Random Forest classification~~
 - ~~Expand the current dataset with more SOTA benchmarks (ISCAS'89, ITC'99, etc.)~~
-- ~~Develop a mock cloud-to-edge bitstream deployment pipeline~~
+- ~~Develop a real-time, simulated cloud-to-edge deployment pipeline (HDL → Synthesis → BLADEI → FPGA)~~
 - ~~Improve detection latency with quantized models~~
 - ~~Expand support for additional FPGA boards~~
 
 ---
 
 ## 🖊️ References
+> - Ahmed, M. K., et al. (2025). Multi-tenant cloud FPGA: Security, trust, and privacy. ACM Transactions on Reconfigurable Technology and Systems, 18(2).
+> - Alfke, P., et al. (2011). It’s an FPGA! IEEE Solid-State Circuits Magazine, 3(4), 15–20.
 > - AMD. (2024). PYNQ: Python Productivity for Zynq. Retrieved from https://www.pynq.io
 > - Benz, F., Seffrin, A., & Huss, S. A. (2012). BIL: A Tool-Chain for Bitstream Reverse-Engineering. Proceedings of the IEEE International Conference on Field Programmable Logic and Applications (FPL), 735–738. IEEE.
+> - Boudjadar, J., et al. (2025). Dynamic FPGA reconfiguration for embedded AI. Future Generation Computer Systems, 169, 107777.
+> - Chakraborty, R. S., et al. (2013). Hardware trojan insertion by bitstream modification. IEEE Design & Test, 30(2), 45–54.
 > - Chawla, N., Bowyer, K., Hall, L., & Kegelmeyer, W. (2002). SMOTE: Synthetic Minority Over-sampling Technique. Journal of Artificial Intelligence Research, 16, 321–357.
+> - Chinnasami, N., & Karakchi, R. (2025). Hybrid cryptographic monitoring system for side-channel attack detection on PYNQ SoCs. arXiv preprint arXiv:2508.21606.
+> - Chinnasami, N., Smith, R. S., & Karakchi, R. (2025). Poster: Hybrid monitoring for side-channel security in edge SoCs. Proceedings of the Tenth ACM/IEEE Symposium on Edge Computing, 1–4.
+> - Dofe, J., et al. (2024). NLP for hardware trojan detection in FPGAs. Cryptography, 8(3), 36.
 > - Elnaggar, R., & Chakrabarty, K. (2018). Machine Learning for Hardware Security: Opportunities and Risks. Journal of Electronic Testing, 34(2), 183–201.
 > - Elnaggar, R., Chaudhuri, J., Karri, R., & Chakrabarty, K. (2023). Learning Malicious Circuits in FPGA Bitstreams. IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems, 42(3), 726–739. Retrieved from https://ieeexplore.ieee.org/document/9828544/
+> - Elnaggar, R., et al. (2022). Learning malicious circuits in FPGA bitstreams. IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems, 42(3), 726–739.
+> - Ghimire, A., et al. (2025). Golden-free unsupervised ML for trojan detection. Journal of Emerging Technologies in Computing Systems, 21(3).
 > - Hayashi, V. T., & Ruggiero, W. V. (2025). Hardware Trojan Detection in Open-Source Hardware Designs Using Machine Learning. IEEE Access. Retrieved from https://ieeexplore.ieee.org/document/10904479/
+> - Hou, J., et al. (2024). Hardware trojan attacks on FPGA-based CNN accelerators. Micromachines, 15(1), 149.
 > - Imbalanced-learn Developers. (2024). SMOTE. Retrieved from https://bit.ly/3IXc0l7
+> - Karakchi, R., & Bakos, J. D. (2023). Napoly: A non-deterministic automata processor overlay. ACM Transactions on Reconfigurable Technology and Systems, 16(3), 1–25.
+> - Karakchi, R., Richards, L. O., & Bakos, J. D. (2017). A dynamically reconfigurable automata processor overlay. Proceedings of the International Conference on Reconfigurable Computing and FPGAs (ReConFig), 1–8. IEEE.
+> - Krieg, C. (2023). Reflections on trusting TrustHub. Proceedings of ICCAD.
+> - Krieg, C., Wolf, C., & Jantsch, A. (2016). Malicious LUT: Stealthy FPGA trojan. Proceedings of ICCAD.
+> - Kumar, K. S., et al. (2015). Improved AES hardware trojan benchmark. Proceedings of VLSI Design and Test.
+> - Mal-Sarkar, S., et al. (2016). Design and validation for FPGA trust. IEEE Transactions on Multi-Scale Computing Systems, 2(3), 186–198.
+> - Marchand, C., & Francq, J. (2014). Stealthy hardware trojans on FPGAs. IET Computers & Digital Techniques, 8(6), 246–255.
+> - More, V., et al. (2024). NLP meets hardware trojan detection. Proceedings of ISVLSI.
 > - Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., … Duchesnay, E. (2011). scikit-learn: Machine Learning in Python. Journal of Machine Learning Research, 12, 2825–2830. Retrieved from https://dl.acm.org/doi/10.5555/1953048.2078195
-> - Salmani, H., Tehranipoor, M., & Karri, R. (2013). On Design Vulnerability Analysis and Trust Benchmark Development. Proceedings of the IEEE International Conference on Computer Design (ICCD). IEEE.
 > - Scikit-learn Developers. (2025a). Cross Validation. Retrieved from https://bit.ly/3gct8QG
 > - Scikit-learn Developers. (2025b). Truncated SVD. Retrieved from https://bit.ly/4mmi4BT
 > - Seo, Y., Yoon, J., Jang, J., Cho, M., Kim, H.-K., & Kwon, T. (2018). Poster: Towards Reverse Engineering FPGA Bitstreams for Hardware Trojan Detection. Proceedings of the Network and Distributed System Security Symposium (NDSS), 18–21. Internet Society.
-> - Shakya, B., He, T., Salmani, H., Forte, D., Bhunia, S., & Tehranipoor, M. (2017). Benchmarking of Hardware Trojans and Maliciously Affected Circuits. Journal of Hardware and Systems Security.
-> - Yoon, J., Seo, Y., Jang, J., Cho, M., Kim, J., Kim, H., & Kwon, T. (2018). A Bitstream Reverse Engineering Tool for FPGA Hardware Trojan Detection. Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security, 2318–2320. Presented at the Toronto, Canada. doi:10.1145/3243734.3278487
+> - Shila, D. M., & Venugopal, V. (2014). Security analysis of hardware trojan threats in FPGA. Proceedings of IEEE ICC.
+> - Stahle-Smith, R., & Karakchi, R. (2025). Real-time ML-based defense against malicious payload. arXiv preprint arXiv:2509.02387.
+> - Su, H., et al. (2025). Explainable hardware trojan localization at LUT level. IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems.
+> - Surabhi, V. R., et al. (2024). FEINT: Automated trojan insertion framework. Information, 15(7), 395.
+> - Wolf, W. (2004). FPGA-Based System Design. Pearson.
+> - Maxfield, C. (2004). The Design Warrior’s Guide to FPGAs: Devices, Tools and Flows. Elsevier.
+> - Vohra, M., & Fasciani, S. (2019). PYNQ-Torch: A framework to develop PyTorch accelerators on the PYNQ platform. Proceedings of the IEEE International Symposium on Signal Processing and Information Technology (ISSPIT 2019). IEEE.
+> - Yoon, J., Seo, Y., Jang, J., Cho, M., Kim, J., Kim, H., & Kwon, T. (2018). A Bitstream Reverse Engineering Tool for FPGA Hardware Trojan Detection. Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security, 2318–2320. doi:10.1145/3243734.3278487
+> - Zhou, J., et al. (2025). Security of SRAM-based FPGAs in the era of AI. Journal of Low Power Electronics and Applications, 15(4), 66.

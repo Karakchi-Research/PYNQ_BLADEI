@@ -1,0 +1,17 @@
+# compile verilog/system verilog design source files
+verilog xil_defaultlib  --include "../../../../../../trusthub_benchmarks/RS232-T2100/src/TjIn" --include "../../../../../../trusthub_benchmarks/RS232-T2100/src/TjFree" --include "../../../../../../trusthub_benchmarks/RS232-T901/src/TjIn" --include "../../../../../../trusthub_benchmarks/RS232-T900/src/TjIn" --include "../../../../../../trusthub_benchmarks/RS232-T800/src/TjIn" --include "../../../../../../trusthub_benchmarks/RS232-T600/src/TjIn" --include "../../../../../../trusthub_benchmarks/RS232-T500/src/TjIn" --include "../../../../../../trusthub_benchmarks/RS232-T400/src/TjIn" --include "../../../../../../trusthub_benchmarks/RS232-T300/src/TjIn" --include "../../../../../../trusthub_benchmarks/RS232-T200/src/TjIn" --include "../../../../../../trusthub_benchmarks/RS232-T100/src/TjIn" \
+"../../../../../../trusthub_benchmarks/RS232-T2100/src/TjIn/top.v" \
+"../../../../../../trusthub_benchmarks/RS232-T2100/src/TjFree/top_benign.v" \
+"../../../../../../trusthub_benchmarks/RS232-T2100/src/TjIn/u_rec.v" \
+"../../../../../../trusthub_benchmarks/RS232-T2100/src/TjFree/u_rec_benign.v" \
+"../../../../../../trusthub_benchmarks/RS232-T2100/src/TjIn/u_xmit.v" \
+"../../../../../../trusthub_benchmarks/RS232-T2100/src/TjFree/u_xmit_benign.v" \
+"../../../../../../trusthub_benchmarks/RS232-T2100/src/TjIn/uart.v" \
+"../../../../../../trusthub_benchmarks/RS232-T2100/src/TjFree/uart_benign.v" \
+"../../../../../../trusthub_benchmarks/RS232-T2100/uart_compare_tb.v" \
+
+# compile glbl module
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort

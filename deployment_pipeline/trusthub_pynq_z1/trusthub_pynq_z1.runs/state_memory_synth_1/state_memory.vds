@@ -1,0 +1,364 @@
+#-----------------------------------------------------------
+# Vivado v2023.2 (64-bit)
+# SW Build 4029153 on Fri Oct 13 20:13:54 MDT 2023
+# IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023
+# SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023
+# Start of session at: Thu Dec 18 01:03:27 2025
+# Process ID: 539462
+# Current directory: /share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.runs/state_memory_synth_1
+# Command line: vivado -log state_memory.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source state_memory.tcl
+# Log file: /share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.runs/state_memory_synth_1/state_memory.vds
+# Journal file: /share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.runs/state_memory_synth_1/vivado.jou
+# Running On: higgs, OS: Linux, CPU Frequency: 1300.000 MHz, CPU Physical cores: 6, Host memory: 67252 MB
+#-----------------------------------------------------------
+source state_memory.tcl -notrace
+create_project: Time (s): cpu = 00:00:06 ; elapsed = 00:00:07 . Memory (MB): peak = 1330.816 ; gain = 25.867 ; free physical = 46100 ; free virtual = 85961
+INFO: [IP_Flow 19-6924] IPCACHE: Running cache check for IP inst: state_memory
+Command: synth_design -top state_memory -part xc7z020clg400-1 -incremental_mode off -mode out_of_context
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Device 21-403] Loading part xc7z020clg400-1
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 4 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 542297
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 2110.945 ; gain = 402.594 ; free physical = 45021 ; free virtual = 84881
+---------------------------------------------------------------------------------
+INFO: [Synth 8-638] synthesizing module 'state_memory' [/share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.gen/sources_1/ip/state_memory/synth/state_memory.vhd:67]
+	Parameter C_FAMILY bound to: zynq - type: string 
+	Parameter C_ADDR_WIDTH bound to: 5 - type: integer 
+	Parameter C_DEFAULT_DATA bound to: 0 - type: string 
+	Parameter C_DEPTH bound to: 32 - type: integer 
+	Parameter C_HAS_CLK bound to: 1 - type: integer 
+	Parameter C_HAS_D bound to: 0 - type: integer 
+	Parameter C_HAS_DPO bound to: 0 - type: integer 
+	Parameter C_HAS_DPRA bound to: 0 - type: integer 
+	Parameter C_HAS_I_CE bound to: 0 - type: integer 
+	Parameter C_HAS_QDPO bound to: 0 - type: integer 
+	Parameter C_HAS_QDPO_CE bound to: 0 - type: integer 
+	Parameter C_HAS_QDPO_CLK bound to: 0 - type: integer 
+	Parameter C_HAS_QDPO_RST bound to: 0 - type: integer 
+	Parameter C_HAS_QDPO_SRST bound to: 0 - type: integer 
+	Parameter C_HAS_QSPO bound to: 1 - type: integer 
+	Parameter C_HAS_QSPO_CE bound to: 0 - type: integer 
+	Parameter C_HAS_QSPO_RST bound to: 0 - type: integer 
+	Parameter C_HAS_QSPO_SRST bound to: 0 - type: integer 
+	Parameter C_HAS_SPO bound to: 0 - type: integer 
+	Parameter C_HAS_WE bound to: 0 - type: integer 
+	Parameter C_MEM_INIT_FILE bound to: state_memory.mif - type: string 
+	Parameter C_ELABORATION_DIR bound to: ./ - type: string 
+	Parameter C_MEM_TYPE bound to: 0 - type: integer 
+	Parameter C_PIPELINE_STAGES bound to: 0 - type: integer 
+	Parameter C_QCE_JOINED bound to: 0 - type: integer 
+	Parameter C_QUALIFY_WE bound to: 0 - type: integer 
+	Parameter C_READ_MIF bound to: 1 - type: integer 
+	Parameter C_REG_A_D_INPUTS bound to: 1 - type: integer 
+	Parameter C_REG_DPRA_INPUT bound to: 0 - type: integer 
+	Parameter C_SYNC_ENABLE bound to: 1 - type: integer 
+	Parameter C_WIDTH bound to: 128 - type: integer 
+	Parameter C_PARSER_TYPE bound to: 1 - type: integer 
+INFO: [Synth 8-3491] module 'dist_mem_gen_v8_0_14' declared at '/share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.gen/sources_1/ip/state_memory/hdl/dist_mem_gen_v8_0_vhsyn_rfs.vhd:3191' bound to instance 'U0' of component 'dist_mem_gen_v8_0_14' [/share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.gen/sources_1/ip/state_memory/synth/state_memory.vhd:133]
+INFO: [Synth 8-256] done synthesizing module 'state_memory' (0#1) [/share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.gen/sources_1/ip/state_memory/synth/state_memory.vhd:67]
+WARNING: [Synth 8-7129] Port spo[127] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[126] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[125] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[124] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[123] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[122] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[121] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[120] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[119] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[118] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[117] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[116] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[115] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[114] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[113] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[112] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[111] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[110] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[109] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[108] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[107] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[106] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[105] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[104] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[103] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[102] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[101] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[100] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[99] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[98] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[97] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[96] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[95] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[94] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[93] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[92] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[91] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[90] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[89] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[88] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[87] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[86] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[85] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[84] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[83] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[82] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[81] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[80] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[79] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[78] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[77] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[76] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[75] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[74] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[73] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[72] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[71] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[70] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[69] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[68] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[67] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[66] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[65] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[64] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[63] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[62] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[61] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[60] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[59] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[58] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[57] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[56] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[55] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[54] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[53] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[52] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[51] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[50] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[49] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[48] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[47] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[46] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[45] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[44] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[43] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[42] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[41] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[40] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[39] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[38] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[37] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[36] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[35] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[34] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[33] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[32] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[31] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[30] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[29] in module rom is either unconnected or has no load
+WARNING: [Synth 8-7129] Port spo[28] in module rom is either unconnected or has no load
+INFO: [Common 17-14] Message 'Synth 8-7129' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:05 ; elapsed = 00:00:06 . Memory (MB): peak = 2198.883 ; gain = 490.531 ; free physical = 44918 ; free virtual = 84780
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:05 ; elapsed = 00:00:06 . Memory (MB): peak = 2213.727 ; gain = 505.375 ; free physical = 44915 ; free virtual = 84777
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:00:05 ; elapsed = 00:00:06 . Memory (MB): peak = 2213.727 ; gain = 505.375 ; free physical = 44915 ; free virtual = 84777
+---------------------------------------------------------------------------------
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.01 . Memory (MB): peak = 2213.727 ; gain = 0.000 ; free physical = 44915 ; free virtual = 84777
+INFO: [Project 1-570] Preparing netlist for logic optimization
+
+Processing XDC Constraints
+Initializing timing engine
+Parsing XDC File [/share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.gen/sources_1/ip/state_memory/state_memory_ooc.xdc] for cell 'U0'
+Finished Parsing XDC File [/share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.gen/sources_1/ip/state_memory/state_memory_ooc.xdc] for cell 'U0'
+Parsing XDC File [/share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.runs/state_memory_synth_1/dont_touch.xdc]
+Finished Parsing XDC File [/share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.runs/state_memory_synth_1/dont_touch.xdc]
+Completed Processing XDC Constraints
+
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2344.477 ; gain = 0.000 ; free physical = 44904 ; free virtual = 84766
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Constraint Validation Runtime : Time (s): cpu = 00:00:00.02 ; elapsed = 00:00:00.04 . Memory (MB): peak = 2344.512 ; gain = 0.000 ; free physical = 44904 ; free virtual = 84765
+INFO: [Designutils 20-5008] Incremental synthesis strategy off
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:11 ; elapsed = 00:00:12 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44896 ; free virtual = 84761
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7z020clg400-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:11 ; elapsed = 00:00:12 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44896 ; free virtual = 84761
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying 'set_property' XDC Constraints
+---------------------------------------------------------------------------------
+Applied set_property KEEP_HIERARCHY = SOFT for U0. (constraint file  /share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.runs/state_memory_synth_1/dont_touch.xdc, line 9).
+---------------------------------------------------------------------------------
+Finished applying 'set_property' XDC Constraints : Time (s): cpu = 00:00:11 ; elapsed = 00:00:12 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44896 ; free virtual = 84761
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:11 ; elapsed = 00:00:12 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44944 ; free virtual = 84809
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Registers : 
+	              128 Bit    Registers := 1     
+	                5 Bit    Registers := 1     
+	                1 Bit    Registers := 1     
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 220 (col length:60)
+BRAMs: 280 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+WARNING: [Synth 8-7080] Parallel synthesis criteria is not met
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:12 ; elapsed = 00:00:13 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44945 ; free virtual = 84807
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+ROM: Preliminary Mapping Report
++---------------------+------------------------------------------------------+---------------+----------------+
+|Module Name          | RTL Object                                           | Depth x Width | Implemented As | 
++---------------------+------------------------------------------------------+---------------+----------------+
+|rom                  | rom[31]                                              | 32x126        | LUT            | 
+|dist_mem_gen_v8_0_14 | synth_options.dist_mem_inst/gen_rom.rom_inst/rom[31] | 32x126        | LUT            | 
++---------------------+------------------------------------------------------+---------------+----------------+
+
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying XDC Timing Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Applying XDC Timing Constraints : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44944 ; free virtual = 84806
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44944 ; free virtual = 84806
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44944 ; free virtual = 84806
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:20 ; elapsed = 00:00:20 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44924 ; free virtual = 84786
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:20 ; elapsed = 00:00:20 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44924 ; free virtual = 84786
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:20 ; elapsed = 00:00:20 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44924 ; free virtual = 84786
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:20 ; elapsed = 00:00:20 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44924 ; free virtual = 84786
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:20 ; elapsed = 00:00:20 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44924 ; free virtual = 84786
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:20 ; elapsed = 00:00:20 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44924 ; free virtual = 84786
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+-----+------+
+|      |Cell |Count |
++------+-----+------+
+|1     |LUT5 |     1|
+|2     |FDRE |     6|
++------+-----+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:20 ; elapsed = 00:00:20 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44924 ; free virtual = 84786
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 527 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 2344.512 ; gain = 505.375 ; free physical = 44924 ; free virtual = 84786
+Synthesis Optimization Complete : Time (s): cpu = 00:00:20 ; elapsed = 00:00:20 . Memory (MB): peak = 2344.512 ; gain = 636.160 ; free physical = 44924 ; free virtual = 84786
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2344.512 ; gain = 0.000 ; free physical = 45224 ; free virtual = 85086
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2344.512 ; gain = 0.000 ; free physical = 45224 ; free virtual = 85086
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Synth Design complete | Checksum: 9b2f8104
+INFO: [Common 17-83] Releasing license: Synthesis
+18 Infos, 101 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:27 ; elapsed = 00:00:26 . Memory (MB): peak = 2344.512 ; gain = 985.977 ; free physical = 45225 ; free virtual = 85087
+INFO: [Common 17-2834] synth_design peak Physical Memory [PSS] (MB): overall = 1936.361; main = 1593.223; forked = 392.010
+INFO: [Common 17-2834] synth_design peak Virtual Memory [VSS] (MB): overall = 3332.848; main = 2312.465; forked = 1020.383
+INFO: [Common 17-1381] The checkpoint '/share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.runs/state_memory_synth_1/state_memory.dcp' has been generated.
+INFO: [Coretcl 2-1648] Added synthesis output to IP cache for IP state_memory, cache-ID = a931ff5b37aba871
+INFO: [Coretcl 2-1174] Renamed 3 cell refs.
+INFO: [Common 17-1381] The checkpoint '/share/ryes/Vivado/VivadoProjects/trusthub_pynq_z1/trusthub_pynq_z1.runs/state_memory_synth_1/state_memory.dcp' has been generated.
+INFO: [runtcl-4] Executing : report_utilization -file state_memory_utilization_synth.rpt -pb state_memory_utilization_synth.pb
+INFO: [Common 17-206] Exiting Vivado at Thu Dec 18 01:04:14 2025...
