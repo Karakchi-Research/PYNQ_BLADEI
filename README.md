@@ -5,7 +5,7 @@
 
 ## 📌 Project Overview
 
-This repository contains an embedded deployment pipeline for detecting **malicious FPGA bitstreams** using a trained deep learning (DL) model. Bitstreams are configuration files that can be weaponized to introduce hardware Trojans, posing serious risks in shared or cloud-hosted reconfigurable systems. This project leverages a lightweight, byte-level classification approach and enables **on-device malware detection** for **PYNQ-supported FPGA boards**, without requiring reverse engineering techniques or access to original source code or netlists. The pipeline features **dual-head classification** for both Trojan detection and hardware family identification across seven categories. Benchmark designs from Trust-Hub (AES, RS232, ITC'99, ISCAS'89, etc.) were synthesized, implemented, and used for training and validation.
+This repository contains an embedded deployment pipeline for detecting **malicious FPGA bitstreams** using a trained deep learning (DL) model. Bitstreams are configuration files that can be weaponized to introduce hardware Trojans, posing serious risks in shared or cloud-hosted reconfigurable systems. This project leverages a lightweight, byte-level classification approach and enables **on-device malware detection** for **PYNQ-supported FPGA boards**, without requiring reverse engineering techniques or access to original source code or netlists. The pipeline features **dual-head classification** for both Trojan detection and hardware family identification across seven categories. Benchmark designs from [Trust-Hub](https://trust-hub.org/#/home) (AES, RS232, ITC'99, ISCAS'89, etc.) were synthesized, implemented, and used for training and validation.
 
 ---
 
