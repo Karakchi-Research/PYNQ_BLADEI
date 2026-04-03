@@ -99,13 +99,6 @@ This project is divided into two parts:
    ```bash
    python3 train_model.py
    ```
-   
-5. Optional Flags for TSVD and SMOTE:
-   ```bash
-   python3 train_model.py --tsvd  # Enable TSVD dimensionality reduction
-   python3 train_model.py --smote  # Enable SMOTE oversampling
-   python3 train_model.py --tsvd --smote  # Enable both
-   ```
 
 #### Architecture:
 - **Hybrid CNN + Random Forest design**:
