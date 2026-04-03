@@ -97,7 +97,7 @@ This project is divided into two parts:
 
 4. Run the Training Script:
    ```bash
-   python3 train_model.py
+   python train_model.py
    ```
 
 #### Architecture:
