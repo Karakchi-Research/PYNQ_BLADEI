@@ -583,7 +583,7 @@ def save_models(cnn_model, family_rf, scaler):
         tar.add("./model_components/family_rf.json", arcname="model_components/family_rf.json")
         tar.add("./model_components/scaler.json", arcname="model_components/scaler.json")
         tar.add("./model_components/meta.json", arcname="model_components/meta.json")
-        tar.add("./cnn_predictor.py", arcname="cnn_predictor.py")
+        tar.add("./model_components/cnn_predictor.py", arcname="model_components/cnn_predictor.py")
         tar.add("./deploy_model.py", arcname="deploy_model.py")
         tar.add("./mock_deployment", arcname="mock_deployment", recursive=False)
     
