@@ -1,0 +1,7 @@
+verilog xil_defaultlib  \
+"../../../../trusthub_pynq_z1.gen/sources_1/ip/state_memory/sim/state_memory.v" \
+
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort

@@ -1,41 +1,40 @@
 # Copyright (c) 2025, Rye Stahle-Smith; All rights reserved.
 # PYNQ BLADEI: Bitstream-Level Abnormality Detection for Embedded Inference
-# January 6th, 2026
-# Description: This script trains a supervised ML model to detect malicious FPGA bitstreams using byte-level and structural features.
-#              Supports dual-head classification: Trojan Detection + Hardware Family Classification
+# March 29th, 2026
+# Description: This script implements a hybrid CNN + RF training pipeline for trojan detection and family classification.
+#              - Extracts byte sequences and statistical features from Xilinx PYNQ-Z1 bitstreams
+#              - Trains a multi-scale 1D CNN for trojan detection and a Random Forest for family classification
+#              - Uses early stopping, learning rate scheduling, and class weighting to handle imbalanced dataset
+#              - Evaluates models with classification reports and confusion matrices
+#              - Saves PyTorch model, Random Forest classifier and scaler parameters for PYNQ deployment
+#              - Minimal dependencies: torch, sklearn, numpy, scipy, json
+# Suppress warnings for cleaner output
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 
+# Import necessary libraries for data handling, model training, and evaluation
 import glob
-import tarfile
 import os
 import sys
 import json
-import warnings
 import random
 import numpy as np
 from collections import Counter
-from scipy.sparse import csr_matrix
 from scipy.stats import skew, kurtosis, entropy
-from sklearn.model_selection import train_test_split, cross_validate, cross_val_score, GridSearchCV, StratifiedKFold
-from sklearn.metrics import classification_report, confusion_matrix, make_scorer, f1_score, precision_score, recall_score
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import TruncatedSVD
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from imblearn.over_sampling import SMOTE
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, balanced_accuracy_score
 
-# --------------------------
-# Step 0: Suppress Warnings
-# --------------------------
-warnings.filterwarnings("ignore", category=FutureWarning)  # Suppress future warnings
-warnings.filterwarnings("ignore", category=UserWarning)  # Suppress user warnings
+# Import PyTorch modules for CNN model
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-# --------------------------
-# Step 1: Constants & Mappings
-# --------------------------
+# Constants
 FAMILY_MAPPING = {  # Map hardware families to filename prefixes
     "CRYPTO": ["AES", "BasicRSA"],
     "COMMS": ["RS232", "EthernetMAC10GE"],
@@ -43,110 +42,51 @@ FAMILY_MAPPING = {  # Map hardware families to filename prefixes
     "BUS/DISPLAY": ["wb_conmax", "vga_lcd"],
     "ITC99": ["b15", "b19"],
     "ISCAS89": ["s15850", "s35932", "s38417", "s38584"],
+    "ISCAS85": ["c1355", "c1908", "c2670", "c3540", "c432", "c499", "c5315", "c6288", "c7552", "c880"],
 }
-
 FAMILY_CLASSES = list(FAMILY_MAPPING.keys())  # List of family class names
 
-# --------------------------
-# Step 2: Set the Random Seed
-# --------------------------
+# CNN hyperparameters
+SEQUENCE_LENGTH = 4096
+EMBEDDING_DIM = 32
+DROPOUT = 0.2
+BATCH_SIZE = 32 
+EPOCHS = 150
+PATIENCE = 50 
+LEARNING_RATE = 0.001
+NUM_STATISTICAL_FEATURES = 278
+
+# Xilinx 7-series sync word (marks start of configuration data)
+SYNC_WORD = bytes([0xAA, 0x99, 0x55, 0x66])
+
+# Set device for PyTorch (GPU if available, else CPU)
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Helper function to set random seeds for reproducibility
 def set_seed(seed=42):
-    random.seed(seed)  # Set Python random seed
-    np.random.seed(seed)  # Set NumPy random seed
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
-# --------------------------
-# Step 3: Collect Bitstreams
-# --------------------------
-def get_family_from_filename(filename):
-    """Determine the hardware family from the filename prefix."""
-    basename = os.path.basename(filename)
-    for family, prefixes in FAMILY_MAPPING.items():  # For each family,
-        for prefix in prefixes:  # Check if filename starts with any prefix
-            if basename.startswith(prefix):
-                return family
-    return "UNKNOWN"
+set_seed(42)
 
+# Helper function to collect bitstream files from the dataset directories
 def collect_bitstreams():
-    benign_files = glob.glob("trusthub_bitstreams/Benign/*.bit")  # Collect benign bitstreams
-    malicious_files = glob.glob("trusthub_bitstreams/Malicious/*.bit")  # Collect malicious bitstreams
-    all_files = benign_files + malicious_files  # Combine all files
+    benign_files = glob.glob("trusthub_bitstreams/Benign/*.bit")
+    malicious_files = glob.glob("trusthub_bitstreams/Malicious/*.bit")
+    all_files = benign_files + malicious_files
     
-    print(f"=== Organizing bitstreams... ===")
+    print("=== Organizing bitstreams... ===")
     print(f"Benign Samples: {len(benign_files)}")
     print(f"Malicious Samples: {len(malicious_files)}")
     print(f"Total Samples: {len(all_files)}")
     
-    print("\nFamily Distribution:")  # Display family distribution
-    family_counts = {fam: 0 for fam in FAMILY_CLASSES}
-    for f in all_files:
-        family = get_family_from_filename(f)
-        if family in family_counts:
-            family_counts[family] += 1
-    for fam, count in family_counts.items():
-        print(f"  {fam}: {count}")
-    
     return benign_files, malicious_files, all_files
 
-# --------------------------
-# Step 4: Feature Extraction
-# --------------------------
-def extract_enhanced_features(filepath):
-    """Extract comprehensive features from a bitstream file (278 total)."""
-    with open(filepath, 'rb') as f:  # Read the bitstream data
-        data = f.read()
-    
-    byte_array = np.frombuffer(data, dtype=np.uint8)
-    size = len(byte_array)
-    
-    if size == 0:  # If the filesize is 0, return a null array
-        return np.zeros(278)
-    
-    # 1) Byte histogram (256 features)
-    counts = Counter(byte_array)
-    byte_hist = np.zeros(256)
-    for byte_val, count in counts.items():  # Normalize frequency of each byte value
-        byte_hist[byte_val] = count / size
-    
-    # 2) Extended statistical features (10 features)
-    byte_entropy = entropy(byte_hist + 1e-10)  # Shannon entropy
-    byte_mean = np.mean(byte_array)  # Mean byte value
-    byte_std = np.std(byte_array)  # Standard deviation
-    byte_skew = skew(byte_array) if size > 2 else 0.0  # Skewness
-    byte_kurt = kurtosis(byte_array) if size > 3 else 0.0  # Kurtosis
-    byte_min = np.min(byte_array)  # Minimum byte value
-    byte_max = np.max(byte_array)  # Maximum byte value
-    byte_median = np.median(byte_array)  # Median byte value
-    zero_ratio = np.sum(byte_array == 0) / size  # Ratio of zero bytes
-    ff_ratio = np.sum(byte_array == 255) / size  # Ratio of 0xFF bytes
-    
-    extended_stats = np.array([
-        byte_entropy, byte_mean, byte_std, byte_skew, byte_kurt,
-        byte_min, byte_max, byte_median, zero_ratio, ff_ratio
-    ])
-    
-    # 3) Structural features (12 features)
-    log_size = np.log1p(size)  # Log-transformed file size
-    chunk_size = max(1, size // 4)  # Divide into 4 chunks
-    chunks = [byte_array[i*chunk_size:(i+1)*chunk_size] for i in range(4)]
-    chunk_means = [np.mean(c) if len(c) > 0 else 0.0 for c in chunks]  # Mean per chunk
-    chunk_stds = [np.std(c) if len(c) > 0 else 0.0 for c in chunks]  # Std per chunk
-    
-    diff = np.diff(byte_array.astype(np.int16))  # Byte-to-byte differences
-    transition_rate = np.sum(diff != 0) / max(1, len(diff))  # Rate of non-zero transitions
-    avg_transition_mag = np.mean(np.abs(diff)) if len(diff) > 0 else 0.0  # Avg transition magnitude
-    
-    nibble_high = (byte_array >> 4) & 0x0F  # High nibble
-    nibble_low = byte_array & 0x0F  # Low nibble
-    nibble_balance = np.mean(nibble_high) - np.mean(nibble_low)  # Nibble balance
-    
-    structural = np.array([
-        log_size, transition_rate, avg_transition_mag, nibble_balance
-    ] + chunk_means + chunk_stds)
-    
-    return np.concatenate([byte_hist, extended_stats, structural])
-
+# Helper function that displays current progress in the console
 def display_progress(current, total):
-    """Helper function to visualize progress."""
     bar_length = 20
     percent = int((current / total) * 100)
     blocks = int((current / total) * bar_length)
@@ -154,457 +94,575 @@ def display_progress(current, total):
     sys.stdout.write(f'\rProgress: |{bar}| {percent}% ({current}/{total})')
     sys.stdout.flush()
 
-def generate_features(all_files):
-    print("\n=== Extracting features (256 histogram + 10 statistical + 12 structural)... ===")
-    feature_matrix = []
-    for i, f in enumerate(all_files, 1):  # For each file in the dataset,
-        feature_matrix.append(extract_enhanced_features(f))  # Extract features
-        display_progress(i, len(all_files))  # Update progress
+# Helper function to find sync word in bitstream data
+def find_sync_word(data):
+    pos = data.find(SYNC_WORD)
+    return pos if pos != -1 else 0
+
+# Helper function to extract byte sequence for CNN
+def extract_byte_sequence(filepath, seq_length=SEQUENCE_LENGTH):
+    with open(filepath, 'rb') as f:
+        data = f.read()
+    
+    # Find sync word to locate configuration region
+    sync_pos = find_sync_word(data)
+    config_start = sync_pos + len(SYNC_WORD) if sync_pos > 0 else 0
+    
+    # Extract bytes from config region
+    config_data = data[config_start:]
+    byte_array = np.frombuffer(config_data, dtype=np.uint8)
+    
+    if len(byte_array) == 0:
+        return np.zeros(seq_length, dtype=np.int64)
+    
+    # Pad or sample to fixed length
+    if len(byte_array) > seq_length:
+        indices = np.linspace(0, len(byte_array) - 1, seq_length, dtype=int)
+        sequence = byte_array[indices]
+    else:
+        sequence = np.zeros(seq_length, dtype=np.uint8)
+        sequence[:len(byte_array)] = byte_array
+    
+    return sequence.astype(np.int64)
+
+# Helper function to generate byte sequences for all files
+def generate_sequences(all_files):
+    print(f"\n=== Extracting byte sequences... ===")
+    sequences = []
+    for i, f in enumerate(all_files, 1):
+        seq = extract_byte_sequence(f)
+        sequences.append(seq)
+        display_progress(i, len(all_files))
     print()
-    return np.array(feature_matrix)  # Return feature matrix (X)
+    return np.array(sequences)
 
+# Helper function to extract statistical features for Random Forest classifier
+def extract_statistical_features(filepath):
+    with open(filepath, 'rb') as f:
+        data = f.read()
+    
+    byte_array = np.frombuffer(data, dtype=np.uint8)
+    size = len(byte_array)
+    
+    if size == 0:
+        return np.zeros(278)
+    
+    # 1) Byte histogram (256 features)
+    counts = Counter(byte_array)
+    byte_hist = np.zeros(256)
+    for byte_val, count in counts.items():
+        byte_hist[byte_val] = count / size
+    
+    # 2) Statistical features (10 features)
+    byte_entropy = entropy(byte_hist + 1e-10)
+    byte_mean = np.mean(byte_array)
+    byte_std = np.std(byte_array)
+    byte_skew = skew(byte_array) if size > 2 else 0.0
+    byte_kurt = kurtosis(byte_array) if size > 3 else 0.0
+    byte_min = np.min(byte_array)
+    byte_max = np.max(byte_array)
+    byte_median = np.median(byte_array)
+    zero_ratio = np.sum(byte_array == 0) / size
+    ff_ratio = np.sum(byte_array == 255) / size
+    
+    stats = np.array([
+        byte_entropy, byte_mean, byte_std, byte_skew, byte_kurt,
+        byte_min, byte_max, byte_median, zero_ratio, ff_ratio
+    ])
+    
+    # 3) Structural features (12 features)
+    log_size = np.log1p(size)
+    chunk_size = max(1, size // 4)
+    chunks = [byte_array[i*chunk_size:(i+1)*chunk_size] for i in range(4)]
+    chunk_means = [np.mean(c) if len(c) > 0 else 0.0 for c in chunks]
+    chunk_stds = [np.std(c) if len(c) > 0 else 0.0 for c in chunks]
+    
+    diff = np.diff(byte_array.astype(np.int16))
+    transition_rate = np.sum(diff != 0) / max(1, len(diff))
+    avg_transition_mag = np.mean(np.abs(diff)) if len(diff) > 0 else 0.0
+    
+    nibble_high = (byte_array >> 4) & 0x0F
+    nibble_low = byte_array & 0x0F
+    nibble_balance = np.mean(nibble_high) - np.mean(nibble_low)
+    
+    structural = np.array([
+        log_size, transition_rate, avg_transition_mag, nibble_balance
+    ] + chunk_means + chunk_stds)
+    
+    return np.concatenate([byte_hist, stats, structural])
+
+# Helper function to generate statistical features for all files
+def generate_statistical_features(all_files):
+    print(f"\n=== Extracting features (256 histogram + 10 statistical + 12 structural)... ===")
+    features = []
+    for i, f in enumerate(all_files, 1):
+        features.append(extract_statistical_features(f))
+        display_progress(i, len(all_files))
+    print()
+    return np.array(features)
+
+# Helper function to extract family label from filepath
+def extract_family_label(filepath):
+    basename = os.path.basename(filepath)
+    for family, prefixes in FAMILY_MAPPING.items():
+        for prefix in prefixes:
+            if basename.startswith(prefix):
+                return FAMILY_CLASSES.index(family)
+    return -1  # Default to unknown if not found
+
+# Helper function to define labels (trojan and family) from all files
 def define_labels(benign_files, malicious_files, all_files):
-    print("\n=== Defining labels... ===")
-    
-    # Trojan labels: 0 = Benign, 1 = Malicious
-    y_trojan = [0]*len(benign_files) + [1]*len(malicious_files)
-    print(f"Trojan Classes: Benign (0), Malicious (1)")
-    
-    # Family labels: index into FAMILY_CLASSES
-    y_family = []
-    for f in all_files:
-        family = get_family_from_filename(f)
-        if family in FAMILY_CLASSES:
-            y_family.append(FAMILY_CLASSES.index(family))
-        else:
-            y_family.append(-1)
-    
-    print(f"Family Classes: {FAMILY_CLASSES}")
-    
-    return np.array(y_trojan), np.array(y_family)  # Return labels (y)
+    y_trojan = np.array([0]*len(benign_files) + [1]*len(malicious_files))
+    y_family = np.array([extract_family_label(f) for f in all_files])
+    return y_trojan, y_family
 
-# --------------------------
-# Step 5: Apply TSVD (Optional - for dimensionality reduction)
-# --------------------------
-def apply_tsvd(X, target_variance=0.95):
-    """Apply TSVD with automatic component selection to achieve target explained variance."""
-    print("\n=== Applying Truncated Singular Value Decomposition (TSVD)... ===")
+# Class for the hybrid CNN model (combines byte sequence and statistical features)
+class HybridCNN(nn.Module):
+    def __init__(self, vocab_size=256, embedding_dim=EMBEDDING_DIM, 
+                 num_stat_features=NUM_STATISTICAL_FEATURES, dropout=DROPOUT):
+        super(HybridCNN, self).__init__()
+        
+        # Byte sequence branch
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        
+        # Multi-scale 1D convolutions
+        self.conv1 = nn.Conv1d(embedding_dim, 64, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv1d(embedding_dim, 64, kernel_size=5, padding=2)
+        self.conv3 = nn.Conv1d(embedding_dim, 64, kernel_size=7, padding=3)
+        self.conv4 = nn.Conv1d(embedding_dim, 64, kernel_size=11, padding=5)
+        
+        # Second layer of convolutions
+        self.conv_deep1 = nn.Conv1d(64, 128, kernel_size=3, padding=1)
+        self.conv_deep2 = nn.Conv1d(64, 128, kernel_size=3, padding=1)
+        self.conv_deep3 = nn.Conv1d(64, 128, kernel_size=3, padding=1)
+        self.conv_deep4 = nn.Conv1d(64, 128, kernel_size=3, padding=1)
+        
+        # Statistical features branch
+        self.stat_fc = nn.Sequential(
+            nn.Linear(num_stat_features, 128),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(128, 64),
+            nn.ReLU()
+        )
+        
+        # Combined classifier
+        self.dropout = nn.Dropout(dropout)
+        self.classifier = nn.Sequential(
+            nn.Linear(512 + 64, 128),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(128, 32),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(32, 1)
+        )
+        
+        self._init_weights()
     
-    # First, find optimal number of components
-    max_components = min(X.shape[0], X.shape[1]) - 1  # Max possible components
-    sparse_X = csr_matrix(X)  # Store X in a sparse matrix
+    def _init_weights(self):
+        for module in self.modules():
+            if isinstance(module, nn.Conv1d):
+                nn.init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+            elif isinstance(module, nn.Linear):
+                nn.init.xavier_uniform_(module.weight)
+                nn.init.zeros_(module.bias)
     
-    # Try increasing components until we hit target variance
-    for n_comp in range(10, max_components, 10):
-        tsvd_test = TruncatedSVD(n_components=n_comp, random_state=42)
-        tsvd_test.fit(sparse_X)
-        explained = tsvd_test.explained_variance_ratio_.sum()
-        if explained >= target_variance:
+    def forward(self, x_seq, x_stat):
+        # Byte sequence branch
+        embedded = self.embedding(x_seq)  # (batch, seq_length, embedding_dim)
+        embedded = embedded.permute(0, 2, 1)  # (batch, embedding_dim, seq_length)
+        
+        # Multi-scale 1D convolutions
+        c1 = torch.relu(self.conv1(embedded))
+        c2 = torch.relu(self.conv2(embedded))
+        c3 = torch.relu(self.conv3(embedded))
+        c4 = torch.relu(self.conv4(embedded))
+        
+        # Second layer of convolutions
+        c1 = torch.relu(self.conv_deep1(c1))
+        c2 = torch.relu(self.conv_deep2(c2))
+        c3 = torch.relu(self.conv_deep3(c3))
+        c4 = torch.relu(self.conv_deep4(c4))
+        
+        # Global max pooling
+        p1 = torch.max(c1, dim=2)[0]
+        p2 = torch.max(c2, dim=2)[0]
+        p3 = torch.max(c3, dim=2)[0]
+        p4 = torch.max(c4, dim=2)[0]
+        
+        cnn_features = torch.cat([p1, p2, p3, p4], dim=1)  # (batch, 512)
+        
+        # Statistical features branch
+        stat_features = self.stat_fc(x_stat)  # (batch, 64)
+        
+        # Combine features and classify
+        combined = torch.cat([cnn_features, stat_features], dim=1)  # (batch, 576)
+        combined = self.dropout(combined)
+        
+        output = self.classifier(combined)
+        return output.squeeze(1)
+
+# Helper function that trains the hybrid model for one epoch
+def train_hybrid_epoch(model, dataloader, criterion, optimizer):
+    model.train()
+    total_loss = 0
+    correct = 0
+    total = 0
+    
+    for batch_seq, batch_stat, batch_y in dataloader:
+        batch_seq = batch_seq.to(DEVICE)
+        batch_stat = batch_stat.to(DEVICE)
+        batch_y = batch_y.to(DEVICE)
+        
+        optimizer.zero_grad()
+        outputs = model(batch_seq, batch_stat)
+        loss = criterion(outputs, batch_y)
+        loss.backward()
+        
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        optimizer.step()
+        
+        total_loss += loss.item()
+        predicted = (torch.sigmoid(outputs) > 0.5).float()
+        correct += (predicted == batch_y).sum().item()
+        total += batch_y.size(0)
+    
+    return total_loss / len(dataloader), correct / total
+
+# Helper function that evaluates the hybrid model on validation/test set
+def evaluate_hybrid(model, dataloader, criterion):
+    model.eval()
+    total_loss = 0
+    all_preds = []
+    all_labels = []
+    
+    with torch.no_grad():
+        for batch_seq, batch_stat, batch_y in dataloader:
+            batch_seq = batch_seq.to(DEVICE)
+            batch_stat = batch_stat.to(DEVICE)
+            batch_y = batch_y.to(DEVICE)
+            
+            outputs = model(batch_seq, batch_stat)
+            loss = criterion(outputs, batch_y)
+            
+            total_loss += loss.item()
+            predicted = (torch.sigmoid(outputs) > 0.5).float()
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(batch_y.cpu().numpy())
+    
+    all_preds = np.array(all_preds)
+    all_labels = np.array(all_labels)
+    accuracy = (all_preds == all_labels).mean()
+    bal_acc = balanced_accuracy_score(all_labels, all_preds)
+    
+    return total_loss / len(dataloader), accuracy, bal_acc, all_preds, all_labels
+
+# Helper function to train the CNN trojan detector
+def train_cnn_trojan_detector(X_seq_train, X_stat_train, y_train, 
+                               X_seq_val, X_stat_val, y_val,
+                               X_seq_test, X_stat_test, y_test):
+    print(f"\n=== Training Trojan Detector (Hybrid CNN) with Multi-Scale Convolutions... ===")
+    print(f"Device: {DEVICE}")
+    print(f"CNN: Sequence Length {SEQUENCE_LENGTH}, Embedding {EMBEDDING_DIM}")
+    print(f"Statistical Features: {NUM_STATISTICAL_FEATURES} dimensions")
+    print(f"Architecture: Multi-scale CNN (512) + Stat MLP (64) -> Classifier")
+    
+    # Create DataLoaders with both inputs
+    train_dataset = TensorDataset(
+        torch.LongTensor(X_seq_train),
+        torch.FloatTensor(X_stat_train),
+        torch.FloatTensor(y_train)
+    )
+    val_dataset = TensorDataset(
+        torch.LongTensor(X_seq_val),
+        torch.FloatTensor(X_stat_val),
+        torch.FloatTensor(y_val)
+    )
+    test_dataset = TensorDataset(
+        torch.LongTensor(X_seq_test),
+        torch.FloatTensor(X_stat_test),
+        torch.FloatTensor(y_test)
+    )
+    
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
+    
+    # Initialize model
+    model = HybridCNN().to(DEVICE)
+    
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"Total Parameters: {total_params:,}")
+    
+    # Calculate class weights to handle imbalanced dataset
+    num_benign = np.sum(y_train == 0)
+    num_malicious = np.sum(y_train == 1)
+    pos_weight = torch.tensor([0.75], dtype=torch.float32)
+    print(f"Class weights - Benign: {num_benign}, Malicious: {num_malicious}, pos_weight: {pos_weight.item():.4f}")
+    
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+    
+    # Warmup + ReduceLROnPlateau
+    warmup_epochs = 5
+    def lr_lambda(epoch):
+        if epoch < warmup_epochs:
+            return (epoch + 1) / warmup_epochs
+        return 1.0
+    
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+    plateau_scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, 
+                                          patience=10, verbose=False)
+    
+    best_val_acc = 0
+    patience_counter = 0
+    
+    for epoch in range(EPOCHS):
+        train_loss, train_acc = train_hybrid_epoch(model, train_loader, criterion, optimizer)
+        val_loss, val_acc, val_bal_acc, _, _ = evaluate_hybrid(model, val_loader, criterion)
+        
+        current_lr = optimizer.param_groups[0]['lr']
+        print(f"Epoch {epoch+1:3d}/{EPOCHS} | Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.4f} | Val Bal.Acc: {val_bal_acc:.4f} | LR: {current_lr:.6f}")
+        
+        scheduler.step()
+        plateau_scheduler.step(val_bal_acc)
+        
+        if val_bal_acc > best_val_acc:
+            best_val_acc = val_bal_acc
+            patience_counter = 0
+            best_model_state = model.state_dict().copy()
+        else:
+            patience_counter += 1
+        
+        if patience_counter >= PATIENCE:
+            model.load_state_dict(best_model_state)
+            print(f"Early stopping at epoch {epoch+1}")
             break
     
-    # Use the found number of components
-    n_components = n_comp
-    tsvd = TruncatedSVD(n_components=n_components, random_state=42)
-    X_reduced = tsvd.fit_transform(sparse_X)
-    explained_var = tsvd.explained_variance_ratio_.sum() * 100
+    # Final evaluation on test set
+    test_loss, test_acc, test_bal_acc, y_pred, y_true = evaluate_hybrid(model, test_loader, criterion)
     
-    print(f"Reduced features from {X.shape[1]} to {n_components} components...")
-    print(f"Explained Variance: {explained_var:.2f}%")
-    return X_reduced, tsvd, n_components
-
-# --------------------------
-# Step 6: Apply StandardScaler
-# --------------------------
-def apply_scaling(X_train, X_test):
-    print("\n=== Applying StandardScaler normalization... ===")
-    scaler = StandardScaler()  # Initialize StandardScaler
-    X_train_scaled = scaler.fit_transform(X_train)  # Fit and transform training data
-    X_test_scaled = scaler.transform(X_test)  # Transform test data
-    return X_train_scaled, X_test_scaled, scaler
-
-# --------------------------
-# Step 7: Train/Test Split
-# --------------------------
-def split_dataset(X, y_trojan, y_family, test_size=0.20):
-    print("\n=== Splitting the dataset for training/testing (80/20)... ===")
-    X_train, X_test, y_trojan_train, y_trojan_test, y_family_train, y_family_test = train_test_split(
-        X, y_trojan, y_family, test_size=test_size, stratify=y_trojan, random_state=42
-    )
-    print(f"Train Samples: {len(X_train)}")
-    print(f"Test Samples: {len(X_test)}")
-    return X_train, X_test, y_trojan_train, y_trojan_test, y_family_train, y_family_test
-
-# --------------------------
-# Step 8: Apply SMOTE (Optional - for oversampling)
-# --------------------------
-def apply_smote(X_train, y_train, k_values=[2, 5, 7, 9, 11]):
-    """Apply SMOTE only if class imbalance exceeds threshold."""
-    # Check class balance
-    unique, counts = np.unique(y_train, return_counts=True)
-    class_ratio = min(counts) / max(counts)
-    
-    print(f"\n=== Comparing k_neighbors values for SMOTE (imbalance ratio: {class_ratio:.2f})... ===\n")
-    best_k = None
-    best_score = 0
-
-    for k in k_values:  # For each k-value
-        try:
-            smote = SMOTE(k_neighbors=k, random_state=42)  # Initialize SMOTE
-            X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train)  # Resample X and y with SMOTE
-
-            model = RandomForestClassifier(n_estimators=100, random_state=42)  # Initialize a RF classifier
-            scores = cross_val_score(model, X_train_smote, y_train_smote, cv=5, scoring='f1_macro')  # Cross validate using F1 Macro scoring
-            mean_score = scores.mean()  # Find the mean score for F1 Macro
-            
-            print(f"SMOTE (k={k}): F1 Macro = {mean_score:.4f} ± {scores.std():.4f}")  # Display the k-value and associated mean score
-
-            if mean_score > best_score:  # If the mean score is greater than the current best score
-                best_score = mean_score  # Update the best score
-                best_k = k  # Store the best k-value
-
-        except ValueError as e:
-            print(f"SMOTE (k={k}) failed: {e}")
-
-    print(f"\n=== Applying SMOTE with k_neighbors={best_k}... ===")
-    smote = SMOTE(k_neighbors=best_k, random_state=42)  # Initialize SMOTE using the best k-value
-    X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train)  # Resample X and y with SMOTE
-    print(f"Training samples after SMOTE: {len(X_train_smote)}")
-    return X_train_smote, y_train_smote, best_k
-
-# --------------------------
-# Step 9: Compare Classifiers
-# --------------------------
-def compare_classifiers(X_train, y_train, task_name="Trojan Detection"):
-    """Compare multiple classifiers using k-Fold Cross-Validation."""
-    # Initialize a dictionary for various classifiers
-    classifiers = {
-        "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
-        "Gradient Boosting": GradientBoostingClassifier(n_estimators=100, random_state=42),
-        "AdaBoost": AdaBoostClassifier(n_estimators=100, random_state=42),
-        "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
-        "Naive Bayes": GaussianNB(),
-        "SVM (RBF)": SVC(kernel='rbf', random_state=42),
-        "KNN": KNeighborsClassifier(),
-        "Decision Tree": DecisionTreeClassifier(random_state=42)
-    }
-
-    # Initialize a dictionary for scoring params
-    scoring = {
-        'accuracy': 'accuracy',
-        'precision': make_scorer(precision_score, average='macro', zero_division=0),
-        'recall': make_scorer(recall_score, average='macro', zero_division=0),
-        'f1': make_scorer(f1_score, average='macro', zero_division=0)
-    }
-
-    print(f"\n=== Comparing classifiers for {task_name} using 5-Fold Cross-Validation... ===")
-    cv_results = {}
-    k = 5
-    
-    for name, model in classifiers.items():
-        results = cross_validate(model, X_train, y_train, cv=k, scoring=scoring)  # Cross validate
-        print(f"\n{name}")  # Print the results
-        for metric in scoring:
-            mean = results[f'test_{metric}'].mean()
-            std = results[f'test_{metric}'].std()
-            print(f"  {metric.capitalize()}: {mean:.2f} ± {std:.2f}")
-        cv_results[name] = results['test_f1'].mean()  # Store results based on mean F1 Score
-    
-    best_name = max(cv_results, key=cv_results.get)  # Find best performing classifier
-    best_score = cv_results[best_name]
-    print(f"\n*** Best Classifier: {best_name} (F1 = {best_score:.4f}) ***")
-    
-    return classifiers, cv_results, best_name
-
-# --------------------------
-# Step 10: Train Trojan Detector with GridSearchCV
-# --------------------------
-def train_trojan_detector(X_train, y_train, X_test, y_test, best_classifier_name="Random Forest"):
-    """Train trojan detector with GridSearchCV for hyperparameter optimization."""
-    print(f"\n=== Training Trojan Detector ({best_classifier_name}) with GridSearchCV... ===")
-    
-    # Define parameter grids for each classifier type
-    if best_classifier_name == "Logistic Regression":
-        param_grid = {
-            'C': [0.01, 0.1, 1, 10, 100],
-            'penalty': ['l2'],
-            'class_weight': ['balanced', {0: 1, 1: 2}],
-            'solver': ['lbfgs']
-        }
-        base_model = LogisticRegression(max_iter=1000, random_state=42)
-    elif best_classifier_name == "Random Forest":
-        param_grid = {
-            'n_estimators': [100, 200, 300],
-            'max_depth': [10, 20, 30, None],
-            'min_samples_split': [2, 5],
-            'class_weight': ['balanced', {0: 1, 1: 2}]
-        }
-        base_model = RandomForestClassifier(random_state=42)
-    elif best_classifier_name == "Gradient Boosting":
-        param_grid = {
-            'n_estimators': [100, 200],
-            'max_depth': [3, 5, 7],
-            'learning_rate': [0.01, 0.1, 0.2]
-        }
-        base_model = GradientBoostingClassifier(random_state=42)
-    elif best_classifier_name == "AdaBoost":
-        param_grid = {
-            'n_estimators': [50, 100, 200],
-            'learning_rate': [0.01, 0.1, 0.5, 1.0]
-        }
-        base_model = AdaBoostClassifier(random_state=42)
-    elif best_classifier_name == "KNN":
-        param_grid = {
-            'n_neighbors': [3, 5, 7, 9],
-            'weights': ['uniform', 'distance'],
-            'metric': ['euclidean', 'manhattan']
-        }
-        base_model = KNeighborsClassifier()
-    else:  # Default to Random Forest
-        param_grid = {
-            'n_estimators': [100, 200, 300],
-            'max_depth': [10, 20, None],
-            'class_weight': ['balanced']
-        }
-        base_model = RandomForestClassifier(random_state=42)
-    
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)  # 5-Fold CV
-    scorer = make_scorer(f1_score, pos_label=1)  # Optimize for F1 on malicious class
-    
-    grid_search = GridSearchCV(base_model, param_grid, cv=cv, scoring=scorer, n_jobs=-1, verbose=1)
-    grid_search.fit(X_train, y_train)  # Fit the grid search
-    
-    best_model = grid_search.best_estimator_  # Get the best model
-    print(f"\nBest Parameters: {grid_search.best_params_}")
-    print(f"Best CV F1: {grid_search.best_score_:.4f}")
-    
-    # Evaluate on test set
-    y_pred = best_model.predict(X_test)
     print(f"\n*** Trojan Detector - Test Set Evaluation ***\n")
-    print(classification_report(y_test, y_pred, target_names=["Benign", "Malicious"], zero_division=0))
+    print(classification_report(y_true, y_pred, target_names=["Benign", "Malicious"], zero_division=0))
     
-    # Display confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
+    cm = confusion_matrix(y_true, y_pred)
     print("*** Trojan Detector - Confusion Matrix ***")
     print("\n\t\t  Predicted")
     print("\t\t  Benign\tMalicious")
-    print(f"Actual Benign    |\t{cm[0][0]}\t\t{cm[0][1]}")
-    print(f"Actual Malicious |\t{cm[1][0]}\t\t{cm[1][1]}")
+    print(f"Actual Benign    |\t{int(cm[0][0])}\t\t{int(cm[0][1])}")
+    print(f"Actual Malicious |\t{int(cm[1][0])}\t\t{int(cm[1][1])}")
     
-    return best_model
+    return model, test_bal_acc
 
-# --------------------------
-# Step 11: Train Family Classifier with GridSearchCV
-# --------------------------
-def train_family_classifier(X_train, y_train, X_test, y_test, best_classifier_name="Random Forest"):
-    """Train family classifier with GridSearchCV for hyperparameter optimization."""
-    print(f"\n=== Training Family Classifier ({best_classifier_name}) with GridSearchCV... ===")
+# Helper function to train Random Forest family classifier
+def train_family_classifier(X_stat_train, y_family_train, X_stat_test, y_family_test):
+    # GridSearchCV for hyperparameter tuning
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [15, 20, 25, 30, None],
+        'min_samples_split': [2, 5],
+        'min_samples_leaf': [1, 2]
+    }
     
-    # Define parameter grids for each classifier type
-    if best_classifier_name == "Random Forest":
-        param_grid = {
-            'n_estimators': [100, 200],
-            'max_depth': [10, 20, None],
-            'min_samples_split': [2, 5],
-            'class_weight': ['balanced']
-        }
-        base_model = RandomForestClassifier(random_state=42)
-    elif best_classifier_name == "Gradient Boosting":
-        param_grid = {
-            'n_estimators': [100, 200],
-            'max_depth': [3, 5, 7],
-            'learning_rate': [0.01, 0.1]
-        }
-        base_model = GradientBoostingClassifier(random_state=42)
-    else:  # Default to Random Forest
-        param_grid = {
-            'n_estimators': [100, 200],
-            'max_depth': [10, 20, None],
-            'class_weight': ['balanced']
-        }
-        base_model = RandomForestClassifier(random_state=42)
+    rf = RandomForestClassifier(random_state=42, n_jobs=-1)
+    grid_search = GridSearchCV(rf, param_grid, cv=5, n_jobs=-1, verbose=0)
     
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)  # 5-Fold CV
+    grid_search.fit(X_stat_train, y_family_train)
+    num_fits = len(param_grid['n_estimators']) * len(param_grid['max_depth']) * len(param_grid['min_samples_split']) * len(param_grid['min_samples_leaf'])
+    print(f"Fitting 5 folds for each of {num_fits} candidates, totalling 60 fits")
     
-    grid_search = GridSearchCV(base_model, param_grid, cv=cv, scoring='f1_weighted', n_jobs=-1, verbose=1)
-    grid_search.fit(X_train, y_train)  # Fit the grid search
+    best_rf = grid_search.best_estimator_
+    best_params = grid_search.best_params_
+    best_cv_f1 = grid_search.best_score_
     
-    best_model = grid_search.best_estimator_  # Get the best model
-    print(f"\nBest Parameters: {grid_search.best_params_}")
-    print(f"Best CV F1: {grid_search.best_score_:.4f}")
+    print(f"\nBest Parameters: {best_params}")
+    print(f"Best CV F1: {best_cv_f1:.4f}")
     
-    # Evaluate on test set
-    y_pred = best_model.predict(X_test)
+    y_family_pred = best_rf.predict(X_stat_test)
+    
     print(f"\n*** Family Classifier - Test Set Evaluation ***\n")
-    print(classification_report(y_test, y_pred, target_names=FAMILY_CLASSES, zero_division=0))
+    print(classification_report(y_family_test, y_family_pred, 
+                                target_names=FAMILY_CLASSES, zero_division=0))
     
-    # Display confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
-    print("*** Family Classifier - Confusion Matrix ***\n")
-    print("\t\t" + "\t".join([f[:7] for f in FAMILY_CLASSES]))
-    for i, row in enumerate(cm):
-        print(f"{FAMILY_CLASSES[i][:7]}\t|\t" + "\t".join(str(val) for val in row))
+    cm = confusion_matrix(y_family_test, y_family_pred)
+    print("*** Family Classifier - Confusion Matrix ***")
+    print(f"\n\t\t" + "\t".join([f"{x[:7]}" for x in FAMILY_CLASSES]))
+    for i, family in enumerate(FAMILY_CLASSES):
+        print(f"{family[:7]}\t|" + "\t".join([str(cm[i][j]) for j in range(len(FAMILY_CLASSES))]))
     
-    return best_model
+    return best_rf
 
-# --------------------------
-# Step 12: Quantize ML Models
-# --------------------------
-def quantize_model(trojan_model, family_model, scaler, tsvd, n_components, dtype=np.float16):
-    """Quantize and export trained ML models for edge deployment."""
-    print(f"\n=== Quantizing ML components... ===")
+# Helper function to save and export the models for PYNQ deployment
+def save_models(cnn_model, family_rf, scaler):
+    import tarfile
     
-    # Create the model_components directory if it doesn't exist
     os.makedirs("./model_components", exist_ok=True)
-
-    # Quantize and save StandardScaler parameters
+    
+    # Save PyTorch model as .pt (native format)
+    print("*** Saving PyTorch Model... ***")
+    torch.save(cnn_model.state_dict(), "./model_components/cnn_trojan.pt")
+    pt_size = os.path.getsize("./model_components/cnn_trojan.pt") / (1024*1024)
+    print(f"  ✓ PyTorch model saved: cnn_trojan.pt ({pt_size:.2f} MB)")
+    
+    # Quantize and save scaler parameters
+    print("\n*** Saving Feature Scaler... ***")
     scaler_data = {
-        "mean": scaler.mean_.astype(dtype).tolist(),
-        "scale": scaler.scale_.astype(dtype).tolist()
+        "mean": scaler.mean_.astype(np.float32).tolist(),
+        "scale": scaler.scale_.astype(np.float32).tolist()
     }
     with open("./model_components/scaler.json", "w") as f:
         json.dump(scaler_data, f)
-
-    # Save TSVD components (only if TSVD was used)
-    if tsvd is not None:
-        tsvd_data = {
-            "components": tsvd.components_.astype(dtype).tolist(),
-            "n_components": n_components
+    scaler_size = os.path.getsize("./model_components/scaler.json") / (1024*1024)
+    print(f"  ✓ Scaler parameters saved: scaler.json ({scaler_size:.2f} MB)")
+    
+    # Export Random Forest classifier as optimized JSON
+    print("\n*** Exporting Random Forest Classifier... ***")
+    rf_data = {
+        "n_trees": len(family_rf.estimators_),
+        "n_features": family_rf.n_features_in_,
+        "classes": FAMILY_CLASSES,
+        "trees": []
+    }
+    
+    for tree in family_rf.estimators_:
+        t = tree.tree_
+        tree_dict = {
+            "children_left": t.children_left.astype(np.int16).tolist(),
+            "children_right": t.children_right.astype(np.int16).tolist(),
+            "feature": t.feature.astype(np.int16).tolist(),
+            "threshold": t.threshold.astype(np.float16).tolist(),
+            "value": t.value.squeeze(1).astype(np.float16).tolist()
         }
-        with open("./model_components/tsvd.json", "w") as f:
-            json.dump(tsvd_data, f)
-    else:
-        # Remove tsvd.json if it exists from previous runs
-        tsvd_path = "./model_components/tsvd.json"
-        if os.path.exists(tsvd_path):
-            os.remove(tsvd_path)
-
-    def save_rf_model(model, filename):
-        """Helper function to extract and save Random Forest trees."""
-        rf_data = []
-        for tree in model.estimators_:
-            t = tree.tree_
-            rf_data.append({
-                "children_left": t.children_left.astype(np.int32).tolist(),
-                "children_right": t.children_right.astype(np.int32).tolist(),
-                "feature": t.feature.astype(np.int32).tolist(),
-                "threshold": t.threshold.astype(dtype).tolist(),
-                "value": t.value.squeeze(1).astype(dtype).tolist()
-            })
-        with open(f"./model_components/{filename}", "w") as f:
-            json.dump(rf_data, f)
+        rf_data["trees"].append(tree_dict)
     
-    # Save trojan detector model
-    if hasattr(trojan_model, 'estimators_'):
-        save_rf_model(trojan_model, "rf_trojan.json")
-    else:  # For non-tree models use joblib
-        import joblib
-        joblib.dump(trojan_model, "./model_components/trojan_model.joblib")
+    with open("./model_components/family_rf.json", "w") as f:
+        json.dump(rf_data, f)
+    rf_size = os.path.getsize("./model_components/family_rf.json") / (1024*1024)
+    print(f"  ✓ Random Forest saved: family_rf.json ({rf_size:.2f} MB)")
     
-    # Save family classifier model
-    if hasattr(family_model, 'estimators_'):
-        save_rf_model(family_model, "rf_family.json")
-    else:  # For non-tree models use joblib
-        import joblib
-        joblib.dump(family_model, "./model_components/family_model.joblib")
-    
-    # Save metadata
+    # Create metadata file
+    print("\n*** Creating Deployment Metadata... ***")
     meta = {
+        "model_name": "PYNQ_BLADEI",
+        "version": "1.0",
         "trojan_classes": ["Benign", "Malicious"],
         "family_classes": FAMILY_CLASSES,
-        "n_features": n_components,
-        "original_features": 278  # 256 histogram + 10 statistical + 12 structural
+        "cnn_architecture": {
+            "sequence_length": SEQUENCE_LENGTH,
+            "embedding_dim": EMBEDDING_DIM,
+            "statistical_features": NUM_STATISTICAL_FEATURES,
+            "total_params": 282497
+        },
+        "feature_extraction": {
+            "byte_histogram": 256,
+            "statistical_features": 10,
+            "structural_features": 12,
+            "total_dimensions": 278
+        },
+        "inference": {
+            "format": "PyTorch (.pt)",
+            "framework": "torch",
+            "trojan_detector": "cnn_trojan.pt",
+            "family_classifier": "family_rf.json",
+            "scaler": "scaler.json"
+        }
     }
     with open("./model_components/meta.json", "w") as f:
         json.dump(meta, f, indent=2)
-
-    print("*** Quantization Complete! ***\n")
-
-# --------------------------
-# Step 13: Compress ML Pipeline
-# --------------------------
-def compress_to_tar_gz(output_file, targets):
-    """Helper function for compressing files to tar.gz."""
-    with tarfile.open(output_file, "w:gz") as tar:
-        for target in targets:
-            if os.path.exists(target):
-                tar.add(target, arcname=os.path.basename(target))
-
-def export_pipeline():
-    """Compress the trained pipeline for PYNQ deployment."""
-    print(f"=== Compressing pipeline for PYNQ Deployment... ===")
-    targets = ["model_components", "deploy_model.py"]
-    output_file = "PYNQ_BLADEI.tar.gz"
-    compress_to_tar_gz(output_file, targets)
-    print(f"*** Compression complete! Archive saved as '{output_file}'... ***")
-
-# --------------------------
-# Main Execution
-# --------------------------
-def main(use_tsvd=False, use_smote=False):
-    set_seed(42)  # Set random seed for reproducibility
     
-    # Step 3: Collect bitstreams
+    # Compress all components into a single archive for deployment
+    print("\n*** Compressing Pipeline for PYNQ Deployment... ***")
+    
+    os.makedirs("./mock_deployment", exist_ok=True)  # Create mock_deployment folder
+    
+    with tarfile.open("PYNQ_BLADEI.tar.gz", "w:gz") as tar:
+        tar.add("./model_components/cnn_trojan.pt", arcname="model_components/cnn_trojan.pt")
+        tar.add("./model_components/family_rf.json", arcname="model_components/family_rf.json")
+        tar.add("./model_components/scaler.json", arcname="model_components/scaler.json")
+        tar.add("./model_components/meta.json", arcname="model_components/meta.json")
+        tar.add("./cnn_predictor.py", arcname="cnn_predictor.py")
+        tar.add("./deploy_model.py", arcname="deploy_model.py")
+        tar.add("./mock_deployment", arcname="mock_deployment", recursive=False)
+    
+    os.rmdir("./mock_deployment")  # Clean up mock_deployment folder
+    
+    tar_size = os.path.getsize("PYNQ_BLADEI.tar.gz") / (1024*1024)
+    total_size = pt_size + rf_size + scaler_size
+    
+    print(f"  ✓ Archive created: PYNQ_BLADEI.tar.gz ({tar_size:.2f} MB)")
+    
+    # Print export summary
+    print(f"\n*** Model Export Summary ***")
+    print(f"  CNN (TFLite):         {pt_size:.2f} MB")
+    print(f"  Family RF (JSON):     {rf_size:.2f} MB")
+    print(f"  Compressed Archive:   {tar_size:.2f} MB")
+    print(f"  Total Uncompressed:   {total_size} MB")
+    print(f"\n  ✓ Optimized for PYNQ deployment!")
+
+# Main function to orchestrate the entire training and export pipeline
+def main():
+    # Collect bitstreams
     benign_files, malicious_files, all_files = collect_bitstreams()
     
-    # Step 4: Extract features and define labels
-    X = generate_features(all_files)
+    # Extract features (both byte sequences and statistical)
+    X_sequences = generate_sequences(all_files)
+    X_statistical = generate_statistical_features(all_files)
+    
+    # Define labels (trojan and family)
     y_trojan, y_family = define_labels(benign_files, malicious_files, all_files)
     
-    # Step 5: Optionally apply TSVD for dimensionality reduction
-    if use_tsvd:
-        X_for_split, tsvd, n_components = apply_tsvd(X, target_variance=0.95)
-    else:
-        print("\n=== Skipping TSVD (disabled)... ===")
-        X_for_split = X
-        tsvd = None
-        n_components = X.shape[1]
+    print(f"\n=== Defining labels... ===")
+    print(f"Trojan Classes: Benign (0), Malicious (1)")
+    print(f"Family Classes: {FAMILY_CLASSES}")
     
-    # Step 7: Train/Test split
-    X_train, X_test, y_trojan_train, y_trojan_test, y_family_train, y_family_test = split_dataset(
-        X_for_split, y_trojan, y_family
+    family_counts = np.bincount(y_family.astype(int))
+    print(f"\nFamily Distribution:")
+    for i, family in enumerate(FAMILY_CLASSES):
+        if i < len(family_counts):
+            print(f"  {family}: {int(family_counts[i])}")
+    
+    # Split the dataset for training/testing (80/20)
+    print(f"\n=== Splitting the dataset for training/testing (80/20)... ===")
+    X_seq_train, X_seq_test, X_stat_train, X_stat_test, y_trojan_train, y_trojan_test, y_family_train, y_family_test = train_test_split(
+        X_sequences, X_statistical, y_trojan, y_family,
+        test_size=0.20, stratify=y_trojan, random_state=42
+    )
+    print(f"Train Samples: {len(X_seq_train)}")
+    print(f"Test Samples: {len(X_seq_test)}")
+    
+    # Apply scaling to statistical features
+    print(f"\n=== Applying StandardScaler normalization... ===")
+    scaler = StandardScaler()
+    X_stat_train = scaler.fit_transform(X_stat_train)
+    X_stat_test = scaler.transform(X_stat_test)
+    
+    # Further split training set into train/validation for CNN (75/25 of training set)
+    X_seq_trainval, X_seq_test_cnn, X_stat_trainval, X_stat_test_cnn, y_trainval, y_test_cnn = train_test_split(
+        X_seq_train, X_stat_train, y_trojan_train,
+        test_size=0.20, stratify=y_trojan_train, random_state=42
+    )
+    X_seq_train_cnn, X_seq_val, X_stat_train_cnn, X_stat_val, y_train_cnn, y_val = train_test_split(
+        X_seq_trainval, X_stat_trainval, y_trainval,
+        test_size=0.25, stratify=y_trainval, random_state=42
     )
     
-    # Step 6: Apply StandardScaler
-    X_train_scaled, X_test_scaled, scaler = apply_scaling(X_train, X_test)
-    
-    # Step 8: Optionally apply SMOTE for class balancing
-    if use_smote:
-        X_train_trojan, y_trojan_balanced, _ = apply_smote(X_train_scaled, y_trojan_train)
-    else:
-        print("\n=== Skipping SMOTE (disabled)... ===")
-        X_train_trojan = X_train_scaled
-        y_trojan_balanced = y_trojan_train
-    
-    # Step 9: Compare classifiers for Trojan Detection
-    _, _, best_trojan_clf = compare_classifiers(
-        X_train_trojan, y_trojan_balanced
+    # Train hybrid CNN + statistical features trojan detector
+    cnn_model, cnn_acc = train_cnn_trojan_detector(
+        X_seq_train_cnn, X_stat_train_cnn, y_train_cnn,
+        X_seq_val, X_stat_val, y_val,
+        X_seq_test_cnn, X_stat_test_cnn, y_test_cnn
     )
     
-    # Step 10: Train Trojan Detector with best classifier
-    trojan_model = train_trojan_detector(
-        X_train_trojan, y_trojan_balanced, X_test_scaled, y_trojan_test, best_trojan_clf
-    )
-
-    # Step 11: Compare classifiers for Family Classification
-    _, _, best_family_clf = compare_classifiers(
-        X_train_scaled, y_family_train, "Family Classification"
-    )
+    # Train family classifier (Random Forest) using only statistical features
+    print(f"\n=== Training Family Classifier (Random Forest - deterministic choice)... ===")
+    family_rf = train_family_classifier(X_stat_train, y_family_train, X_stat_test, y_family_test)
     
-    # Step 12: Train Family Classifier with best classifier
-    family_model = train_family_classifier(
-        X_train_scaled, y_family_train, X_test_scaled, y_family_test, best_family_clf
-    )
-    
-    # Step 13: Quantize and export models
-    quantize_model(trojan_model, family_model, scaler, tsvd, n_components)
-    
-    # Step 14: Compress for deployment
-    export_pipeline()
+    # Save and export models for PYNQ deployment
+    print(f"\n=== Exporting and Quantizing Models for PYNQ Deployment... ===")
+    save_models(cnn_model, family_rf, scaler)
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="Train BLADEI pipeline with optional TSVD and SMOTE")
-    parser.add_argument("--tsvd", action="store_true", help="Enable TSVD for dimensionality reduction")
-    parser.add_argument("--smote", action="store_true", help="Enable SMOTE for oversampling")
-    args = parser.parse_args()
-    main(use_tsvd=args.tsvd, use_smote=args.smote)
+    main()

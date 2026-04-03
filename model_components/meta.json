@@ -1,0 +1,36 @@
+{
+  "model_name": "PYNQ_BLADEI",
+  "version": "1.0",
+  "trojan_classes": [
+    "Benign",
+    "Malicious"
+  ],
+  "family_classes": [
+    "CRYPTO",
+    "COMMS",
+    "MCU/CPU",
+    "BUS/DISPLAY",
+    "ITC99",
+    "ISCAS89",
+    "ISCAS85"
+  ],
+  "cnn_architecture": {
+    "sequence_length": 4096,
+    "embedding_dim": 32,
+    "statistical_features": 278,
+    "total_params": 282497
+  },
+  "feature_extraction": {
+    "byte_histogram": 256,
+    "statistical_features": 10,
+    "structural_features": 12,
+    "total_dimensions": 278
+  },
+  "inference": {
+    "format": "PyTorch (.pt)",
+    "framework": "torch",
+    "trojan_detector": "cnn_trojan.pt",
+    "family_classifier": "family_rf.json",
+    "scaler": "scaler.json"
+  }
+}
