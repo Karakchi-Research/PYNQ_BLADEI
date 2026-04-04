@@ -15,7 +15,7 @@ This repository contains an embedded deployment pipeline for detecting **malicio
   - **Statistical Features**: 278-dimensional feature vector (256-bin byte histogram + 10 statistical + 12 structural features) → 64-dim Multi-layer Perception (MLP)
 - 🧠 **Hybrid CNN + Random Forest**:
   - **Trojan Detector**: Byte sequence CNN features (512 dimenstions) + statistical MLP features (64 dimenstions) → binary trojan classification (Benign vs Malicious)
-  - **Family Classifier**: Random Forest trained on statistical features only with GridSearchCV-tuned hyperparameters → 7-class hardware family identifier (CRYPTO, COMMS, MCU, BUS, ITC99, ISCAS89, ISCAS85)
+  - **Family Classifier**: Random Forest trained on statistical features → 7-class hardware family identifier (CRYPTO, COMMS, MCU, BUS, ITC99, ISCAS89, ISCAS85)
 - 📊 Real-time inference with confidence scores and threat assessment on ARMv7/ARMv8 devices
 - ☁️ Includes a simulated **cloud-to-edge deployment pipeline** with Vivado automation (TCL), benchmark synthesis, constraint file selection, bitstream generation, and SSH deployment to PYNQ
 - ⚡ **ARMv7 (PYNQ-Z1/Z2, Zynq-7000)** and **ARMv8 (Zynq UltraScale+, RFSoC, Kria)** support via PYNQ
@@ -108,7 +108,7 @@ This project is divided into two parts:
 - **Dual-head Classification**:
   - **Trojan Detector**: Benign vs Malicious (trained via CNN)
   - **Family Classifier**: CRYPTO, COMMS, MCU/CPU, BUS/DISPLAY, ITC99, ISCAS89 (Random Forest on statistical features)
-- **Model Optimization**: GridSearchCV hyperparameter tuning, early stopping, learning rate scheduling
+- **Model Optimization**: Standard scaling, early stopping, learning rate scheduling
 - Export Format: PyTorch `.pt` for CNN, JSON for Random Forest (lightweight edge deployment)
 
 ---
