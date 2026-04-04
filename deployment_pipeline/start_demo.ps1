@@ -87,7 +87,7 @@ function Show-Menu {
     
     Write-Host "Available Benchmarks:"
     for ($i = 0; $i -lt $script:BENCHMARKS.Count; $i++) {
-        Write-Host "  $($i+1))) $($script:BENCHMARKS[$i])"
+        Write-Host "  $($i+1)) $($script:BENCHMARKS[$i])"
     }
     Write-Host "  0) Exit"
     Write-Host ""
