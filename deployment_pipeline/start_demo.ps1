@@ -172,23 +172,18 @@ function Run-Pipeline {
     
     # Check if this is an ISCAS85 benchmark (starts with 'c')
     $IS_ISCAS85 = $SELECTED_BENCH -match '^c\d'
-    $VARIANT = if ($IS_ISCAS85) { "malicious" } else { "benign" }
-    
-    # Determine source directory based on benchmark type
     if ($IS_ISCAS85) {
+        $VARIANT = "malicious"
         $SRC_DIR = $BENCH_DIR
     } else {
-        $SRC_DIR = "$BENCH_DIR\src\TjFree"
-        
-        if (-not (Test-Path $SRC_DIR)) {
-            Write-Host "WARNING: Benign variant not found, attempting malicious variant..."
-            $SRC_DIR = "$BENCH_DIR\src\TjIn"
+        # For non-ISCAS85, randomly choose between benign and malicious
+        $RandomChoice = Get-Random -Minimum 0 -Maximum 2
+        if ($RandomChoice -eq 0) {
+            $VARIANT = "benign"
+            $SRC_DIR = "$BENCH_DIR\src\TjFree"
+        } else {
             $VARIANT = "malicious"
-        }
-        
-        if (-not (Test-Path $SRC_DIR)) {
-            Write-Host "ERROR: Could not find variant directory in: $BENCH_DIR"
-            return
+            $SRC_DIR = "$BENCH_DIR\src\TjIn"
         }
     }
     
@@ -315,14 +310,6 @@ function Run-Pipeline {
     Write-Host "=== Uploading the bitstream to the edge device... ==="
     Write-Host "Target: $PYNQ_HOST"
     Write-Host ""
-    
-    # Create deployment directory
-    ssh $PYNQ_HOST "mkdir -p '$PYNQ_DEPLOY_DIR'" 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: Could not connect to PYNQ board at $PYNQ_HOST"
-        Remove-Item $LOCAL_BITSTREAM -Force
-        return
-    }
     
     # Upload bitstream
     $BITSTREAM_NAME = Split-Path $LOCAL_BITSTREAM -Leaf
