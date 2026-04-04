@@ -22,7 +22,7 @@ import random
 import numpy as np
 from collections import Counter
 from scipy.stats import skew, kurtosis, entropy
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, balanced_accuracy_score
@@ -459,29 +459,10 @@ def train_cnn_trojan_detector(X_seq_train, X_stat_train, y_train,
 
 # Helper function to train Random Forest family classifier
 def train_family_classifier(X_stat_train, y_family_train, X_stat_test, y_family_test):
-    # GridSearchCV for hyperparameter tuning
-    param_grid = {
-        'n_estimators': [100, 200, 300],
-        'max_depth': [15, 20, 25, 30, None],
-        'min_samples_split': [2, 5],
-        'min_samples_leaf': [1, 2]
-    }
+    rf = RandomForestClassifier(random_state=42, n_jobs=1)
     
-    rf = RandomForestClassifier(random_state=42, n_jobs=-1)
-    grid_search = GridSearchCV(rf, param_grid, cv=5, n_jobs=-1, verbose=0)
-    
-    grid_search.fit(X_stat_train, y_family_train)
-    num_fits = len(param_grid['n_estimators']) * len(param_grid['max_depth']) * len(param_grid['min_samples_split']) * len(param_grid['min_samples_leaf'])
-    print(f"Fitting 5 folds for each of {num_fits} candidates, totalling 60 fits")
-    
-    best_rf = grid_search.best_estimator_
-    best_params = grid_search.best_params_
-    best_cv_f1 = grid_search.best_score_
-    
-    print(f"\nBest Parameters: {best_params}")
-    print(f"Best CV F1: {best_cv_f1:.4f}")
-    
-    y_family_pred = best_rf.predict(X_stat_test)
+    rf.fit(X_stat_train, y_family_train)
+    y_family_pred = rf.predict(X_stat_test)
     
     print(f"\n*** Family Classifier - Test Set Evaluation ***\n")
     print(classification_report(y_family_test, y_family_pred, 
@@ -493,7 +474,7 @@ def train_family_classifier(X_stat_train, y_family_train, X_stat_test, y_family_
     for i, family in enumerate(FAMILY_CLASSES):
         print(f"{family[:7]}\t|" + "\t".join([str(cm[i][j]) for j in range(len(FAMILY_CLASSES))]))
     
-    return best_rf
+    return rf
 
 # Helper function to save and export the models for PYNQ deployment
 def save_models(cnn_model, family_rf, scaler):
