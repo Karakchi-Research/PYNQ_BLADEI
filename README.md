@@ -41,10 +41,6 @@ PYNQ_BLADEI/<br>
 └── deployment_pipeline/ ***# Complete local build and edge deployment workflow***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── start_demo.sh ***# Main orchestrator (Linux/macOS)***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── start_demo.ps1 ***# Main orchestrator (Windows)***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── pynq_ip.sh ***# PYNQ network configuration (Linux/macOS)***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── pynq_ip.ps1 ***# PYNQ network configuration (Windows)***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── default_ip.sh ***# Network restoration (Linux/macOS)***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── default_ip.ps1 ***# Network restoration (Windows)***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── run_random_build.tcl ***# Vivado TCL script (synthesis, implementation, bitstream)***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── Constraints/ ***# PYNQ-Z1 XDC constraint files***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── mock_deployment/ ***# Output directory for generated bitstreams***<br>
@@ -166,47 +162,47 @@ The `deployment_pipeline/` subdirectory contains everything needed to operate BL
 
 - **`start_demo.sh` / `start_demo.ps1`** — Main orchestrator for Linux/macOS and Windows respectively: Builds bitstreams locally using Vivado, then deploys to PYNQ board for vetting
 - **`run_random_build.tcl`** — Vivado automation script: Manages synthesis, implementation, and bitstream generation
-- **`pynq_ip.sh` / `pynq_ip.ps1`** — Network configuration scripts for PYNQ board access
-- **`default_ip.sh` / `default_ip.ps1`** — Network restoration scripts to return to DHCP
 - **`trusthub_benchmarks/`** — Re-engineered benchmark designs from Trust-Hub (AES, RS232, ITC'99, ISCAS'89, etc.) in both benign and malicious variants
 - **`Constraints/`** — PYNQ-Z1 constraint files for different benchmark types (AES, RS232, VHDL-based designs)
 
 > **Requirements:**
 > - A supported FPGA board with PYNQ v2.4+
+> - Your machine must be on the same network as your PYNQ device before running the pipeline
 > - Vivado v2023.2 or compatible version installed on your machine
 > - All re-engineered benchmarks in the `deployment_pipeline/` subdirectory
-> - OpenSSH installed (Windows users: included in Windows 10/11)
+> - OpenSSH installed (included in Windows 10/11)
 
 ### Running the Pipeline
 
 #### Linux / macOS:
-1. Configure Environment Variables:
+1. Ensure you are on the same network as your PYNQ device (confirm with `ping` or network settings)
+
+2. Configure Environment Variables:
    ```bash
    export VIVADO_SETTINGS=/path/to/vivado/settings.sh
    export BENCH_ROOT=/path/to/benchmarks
-   export PYNQ_HOST=xilinx@192.168.2.99
-   export PYNQ_PASS=xilinx
    ```
 
-2. Run the Pipeline:
+3. Run the Pipeline:
    ```bash
    cd deployment_pipeline
-   chmod +x start_demo.sh pynq_ip.sh default_ip.sh
+   chmod +x start_demo.sh
    ./start_demo.sh
    ```
 
 #### Windows:
-1. Configure Environment Variables:
+1. Ensure you are on the same network as your PYNQ device (confirm with `ping` or network settings)
+
+2. Configure Environment Variables:
    ```powershell
    $env:VIVADO_SETTINGS="C:\Xilinx\Vivado\2023.2\settings64.bat"
    $env:BENCH_ROOT="path\to\benchmarks"
-   $env:PYNQ_HOST="xilinx@192.168.2.99"
-   $env:PYNQ_PASS="xilinx"
    ```
 
-2. Run the pipeline (PowerShell as Administrator):
+3. Run the Pipeline (PowerShell as Administrator):
    ```powershell
-   cd deployment_pipeline
+   cd $env:USERPROFILE
+   cd path/to/PYNQ_BLADEI/deployment_pipeline
    powershell -ExecutionPolicy Bypass -File start_demo.ps1
    ```
 

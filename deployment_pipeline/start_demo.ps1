@@ -41,7 +41,6 @@ $ACTIVE_XDC = "$CONSTRAINTS_DIR\PYNQ-Z1_C.xdc"
 $OUT_ROOT = ".\mock_deployment"
 
 # Global state flags
-$script:PYNQ_IP_ACTIVE = $false
 $script:XDC_BACKUP = ""
 
 # Helper function to perform cleanup on exit
@@ -54,12 +53,6 @@ function Cleanup {
         Copy-Item $script:XDC_BACKUP $ACTIVE_XDC -Force
         Remove-Item $script:XDC_BACKUP -Force
         Write-Host "Constraints restored"
-    }
-    
-    # Only restore default IP if we switched to PYNQ IP
-    if ($script:PYNQ_IP_ACTIVE -and (Test-Path "$env:USERPROFILE\default_ip.ps1")) {
-        Write-Host "Restoring default IP settings..."
-        & "$env:USERPROFILE\default_ip.ps1"
     }
     
     Write-Host "=== Final cleanup complete! ==="
@@ -300,21 +293,6 @@ function Run-Pipeline {
     Write-Host "Bitstream generated: $LABEL"
     Write-Host "Size: $([Math]::Round($bitSize, 2)) MB"
     Write-Host ""
-    
-    # ----- Switch to PYNQ IP -----
-    Write-Host "=== Accessing the edge device... ==="
-    
-    if (-not (Test-Path "$env:USERPROFILE\pynq_ip.ps1")) {
-        Write-Host "ERROR: $env:USERPROFILE\pynq_ip.ps1 not found"
-        return
-    }
-    
-    Write-Host "Switching to PYNQ IP settings..."
-    & "$env:USERPROFILE\pynq_ip.ps1"
-    $script:PYNQ_IP_ACTIVE = $true
-    Write-Host ""
-    
-    Start-Sleep -Seconds 2
     
     # ----- Upload bitstream to PYNQ board -----
     Write-Host "=== Uploading the bitstream to the edge device... ==="
