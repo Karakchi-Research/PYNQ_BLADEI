@@ -42,7 +42,6 @@ ACTIVE_XDC="$CONSTRAINTS_DIR/PYNQ-Z1_C.xdc"
 OUT_ROOT="./mock_deployment"
 
 # Global state flags
-PYNQ_IP_ACTIVE=false
 XDC_BACKUP=""
 
 # Helper function to perform cleanup on exit
@@ -55,12 +54,6 @@ cleanup() {
     cp "$XDC_BACKUP" "$ACTIVE_XDC"
     rm -f "$XDC_BACKUP"
     echo "Constraints restored"
-  fi
-  
-  # Only restore default IP if we switched to PYNQ IP
-  if [ "$PYNQ_IP_ACTIVE" = "true" ] && [ -f ./default_ip.sh ]; then
-    echo "Restoring default IP settings..."
-    ./default_ip.sh
   fi
   
   echo "=== Final cleanup complete! ==="
@@ -298,21 +291,6 @@ run_pipeline() {
   echo "Bitstream generated: $LABEL"
   echo "Size: $(du -h "$LOCAL_BITSTREAM" | awk '{print $1}')"
   echo ""
-  
-  # ----- Switch to PYNQ IP -----
-  echo "=== Accessing the edge device... ==="
-  
-  if [ ! -f ./pynq_ip.sh ]; then
-    echo "ERROR: ./pynq_ip.sh not found"
-    return 1
-  fi
-  
-  echo "Switching to PYNQ IP settings..."
-  ./pynq_ip.sh
-  PYNQ_IP_ACTIVE=true
-  echo ""
-  
-  sleep 2
   
   # ----- Upload bitstream to PYNQ board -----
   echo "=== Uploading the bitstream to the edge device... ==="
