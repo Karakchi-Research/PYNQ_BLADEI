@@ -1,5 +1,5 @@
 # Copyright (c) 2025, Rye Stahle-Smith; All rights reserved.
-# PYNQ BLADEI: Network Configuration Restoration (Windows)
+# PYNQ BLADEI: Bitstream-Level Abnormality Detection for Embedded Inference
 # March 29th, 2026
 # Description: Restores Windows network settings to DHCP (default configuration)
 # NOTE: Requires administrator privileges
@@ -64,10 +64,10 @@ try {
     # Get assigned IP
     $newIP = Get-NetIPAddress -InterfaceIndex $interfaceIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($newIP) {
-        Write-Host "✓ Network restored to default configuration (DHCP)"
+        Write-Host "[OK] Network restored to default configuration (DHCP)"
         Write-Host "Assigned IP: $($newIP.IPAddress)"
     } else {
-        Write-Host "⚠ Network restored to DHCP (waiting for IP assignment)"
+        Write-Host "[!] Network restored to DHCP (waiting for IP assignment)"
     }
 } catch {
     Write-Host "ERROR: Failed to restore DHCP configuration"
