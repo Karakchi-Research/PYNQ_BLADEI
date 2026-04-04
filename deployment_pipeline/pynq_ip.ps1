@@ -1,5 +1,5 @@
 # Copyright (c) 2025, Rye Stahle-Smith; All rights reserved.
-# PYNQ BLADEI: Network Configuration for PYNQ Board Access (Windows)
+# PYNQ BLADEI: Bitstream-Level Abnormality Detection for Embedded Inference
 # March 29th, 2026
 # Description: Switches Windows network settings to connect to PYNQ board (192.168.2.0/24 network)
 # NOTE: Requires administrator privileges
@@ -55,7 +55,7 @@ try {
     Write-Host "Static IP configured: $ipAddress/$prefixLength"
     Write-Host "Gateway: $gateway"
     Write-Host ""
-    Write-Host "✓ Network switched to PYNQ configuration (192.168.2.x)"
+    Write-Host "[OK] Network switched to PYNQ configuration (192.168.2.x)"
     Write-Host ""
     Write-Host "You should now be able to reach the PYNQ board at: xilinx@192.168.2.99"
 } catch {
