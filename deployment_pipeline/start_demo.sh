@@ -231,6 +231,23 @@ run_pipeline() {
   echo "Top-level module: $TOP"
   echo ""
   
+  # ----- Copy .coe files for AES benchmarks -----
+  if [[ "$SELECTED_BENCH" =~ [Aa][Ee][Ss] ]]; then
+    echo "=== Preparing memory initialization files... ==="
+    
+    if [ -f "$SRC_DIR/key_memory.coe" ]; then
+      cp "$SRC_DIR/key_memory.coe" "$BENCH_DIR/key_memory.coe"
+      echo "Copied: key_memory.coe"
+    fi
+    
+    if [ -f "$SRC_DIR/state_memory.coe" ]; then
+      cp "$SRC_DIR/state_memory.coe" "$BENCH_DIR/state_memory.coe"
+      echo "Copied: state_memory.coe"
+    fi
+    
+    echo ""
+  fi
+  
   STAMP="$(date +%Y%m%d_%H%M%S)"
   LABEL="${SELECTED_BENCH}_${VARIANT}_${STAMP}"
   

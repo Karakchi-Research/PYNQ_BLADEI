@@ -227,6 +227,23 @@ function Run-Pipeline {
     Write-Host "Top-level module: $TOP"
     Write-Host ""
     
+    # ----- Copy .coe files for AES benchmarks -----
+    if ($SELECTED_BENCH -match '[Aa][Ee][Ss]') {
+        Write-Host "=== Preparing memory initialization files... ==="
+        
+        if (Test-Path "$SRC_DIR\key_memory.coe") {
+            Copy-Item "$SRC_DIR\key_memory.coe" "$BENCH_DIR\key_memory.coe" -Force
+            Write-Host "Copied: key_memory.coe"
+        }
+        
+        if (Test-Path "$SRC_DIR\state_memory.coe") {
+            Copy-Item "$SRC_DIR\state_memory.coe" "$BENCH_DIR\state_memory.coe" -Force
+            Write-Host "Copied: state_memory.coe"
+        }
+        
+        Write-Host ""
+    }
+    
     $STAMP = Get-Date -Format "yyyyMMdd_HHmmss"
     $LABEL = "${SELECTED_BENCH}_${VARIANT}_${STAMP}"
     
