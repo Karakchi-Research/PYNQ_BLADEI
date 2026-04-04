@@ -14,10 +14,10 @@ $ErrorActionPreference = "Stop"
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Configuration variables (user-customizable)
-$VIVADO_SETTINGS = $env:VIVADO_SETTINGS -or "$env:ProgramFiles\Xilinx\Vivado\2023.2\settings64.bat"
-$BENCH_ROOT = $env:BENCH_ROOT -or "$SCRIPT_DIR\trusthub_benchmarks"
-$PYNQ_HOST = $env:PYNQ_HOST -or "xilinx@192.168.2.99"
-$PYNQ_PASS = $env:PYNQ_PASS -or "xilinx"
+$VIVADO_SETTINGS = if ($env:VIVADO_SETTINGS) { $env:VIVADO_SETTINGS } else { "$env:ProgramFiles\Xilinx\Vivado\2023.2\settings64.bat" }
+$BENCH_ROOT      = if ($env:BENCH_ROOT)      { $env:BENCH_ROOT }      else { "$SCRIPT_DIR\trusthub_benchmarks" }
+$PYNQ_HOST       = if ($env:PYNQ_HOST)       { $env:PYNQ_HOST }       else { "xilinx@192.168.2.99" }
+$PYNQ_PASS       = if ($env:PYNQ_PASS)       { $env:PYNQ_PASS }       else { "xilinx" }
 
 # Vivado project paths (fixed)
 $PROJECT_DIR = "$SCRIPT_DIR\trusthub_pynq_z1"
@@ -313,7 +313,7 @@ function Run-Pipeline {
     
     # Upload bitstream
     $BITSTREAM_NAME = Split-Path $LOCAL_BITSTREAM -Leaf
-    scp $LOCAL_BITSTREAM "$PYNQ_HOST:$PYNQ_DEPLOY_DIR/$BITSTREAM_NAME" 2>$null
+    scp $LOCAL_BITSTREAM "${PYNQ_HOST}:$PYNQ_DEPLOY_DIR/$BITSTREAM_NAME" 2>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "ERROR: Failed to transfer bitstream to PYNQ board"
         Remove-Item $LOCAL_BITSTREAM -Force
