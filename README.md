@@ -33,11 +33,7 @@ PYNQ_BLADEI/<br>
 ├── PYNQ_BLADEI.tar.gz ***# Pre-trained models (CNN, Random Forest, scalers and metadata)***<br>
 ├── trusthub_bitstreams.zip ***# Sample `.bit` files (benign/malicious variants)***<br>
 ├── model_components/ ***# Output directory for trained models***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── cnn_predictor.py ***# Lightweight CNN for deployment***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── family_rf.json ***# Random Forest classifier***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── scaler.json ***# Feature scaler parameters***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── meta.json ***# Model metadata***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;└── cnn_trojan.pt ***# Pre-trained CNN model***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── cnn_predictor.py ***# Lightweight CNN script for deployment***<br>
 └── deployment_pipeline/ ***# Complete local build and edge deployment workflow***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── start_demo.sh ***# Main orchestrator (Linux/macOS)***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── start_demo.ps1 ***# Main orchestrator (Windows)***<br>
