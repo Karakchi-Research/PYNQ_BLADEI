@@ -31,7 +31,6 @@ PYNQ_BLADEI/<br>
 ├── train_model.py ***# Hybrid CNN + RF training pipeline***<br>
 ├── deploy_model.py ***# On-device inference for PYNQ***<br>
 ├── PYNQ_BLADEI.tar.gz ***# Pre-trained models (CNN, Random Forest, scalers and metadata)***<br>
-├── trusthub_bitstreams.zip ***# Sample `.bit` files (benign/malicious variants)***<br>
 ├── model_components/ ***# Output directory for trained models***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;└── cnn_predictor.py ***# Lightweight CNN script for deployment***<br>
 └── deployment_pipeline/ ***# Complete local build and edge deployment workflow***<br>
@@ -39,7 +38,6 @@ PYNQ_BLADEI/<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── start_demo.ps1 ***# Main orchestrator (Windows)***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── bladei.tcl ***# Vivado project recreation script***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── run_random_build.tcl ***# Vivado TCL script (synthesis, implementation, bitstream)***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── trusthub_benchmarks/ ***# Re-engineered Trust-Hub benchmark designs***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── Constraints/ ***# PYNQ-Z1 XDC constraint files***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── ip/ ***# Vivado IP core definitions (.xci) for AES memory blocks***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;└── mock_deployment/ ***# Output directory for generated bitstreams***<br>
