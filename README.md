@@ -147,7 +147,6 @@ This project is divided into two parts:
 - Automatically quarantines malicious bitstreams
 
 ---
-
 ## ☁️ Deployment Pipeline
 
 After training and deploying BLADEI, the included **deployment pipeline** orchestrates a complete local cloud-to-edge workflow for Trojan detection using your local machine and PYNQ board. This allows you to generate, deploy, and test FPGA bitstreams in a simulated real-time pipeline. The pipeline demonstrates BLADEI's end-to-end capability for integrating bitstream security into a production FPGA deployment workflow.
@@ -157,9 +156,11 @@ After training and deploying BLADEI, the included **deployment pipeline** orches
 The `deployment_pipeline/` subdirectory contains everything needed to operate BLADEI end-to-end:
 
 - **`start_demo.sh` / `start_demo.ps1`** — Main orchestrator for Linux/macOS and Windows respectively: Builds bitstreams locally using Vivado, then deploys to PYNQ board for vetting
+- **`bladei.tcl`** — Vivado project recreation script: Rebuilds the Vivado project from source, managing all filesets, IP cores, and run configurations
 - **`run_random_build.tcl`** — Vivado automation script: Manages synthesis, implementation, and bitstream generation
 - **`trusthub_benchmarks/`** — Re-engineered benchmark designs from Trust-Hub (AES, RS232, ITC'99, ISCAS'89, etc.) in both benign and malicious variants
 - **`Constraints/`** — PYNQ-Z1 constraint files for different benchmark types (AES, RS232, VHDL-based designs)
+- **`ip/`** — Vivado IP core definitions (`.xci`) for memory blocks used in the AES benchmark
 
 > **Requirements:**
 > - A supported FPGA board with PYNQ v2.4+
@@ -168,103 +169,130 @@ The `deployment_pipeline/` subdirectory contains everything needed to operate BL
 > - All re-engineered benchmarks in the `deployment_pipeline/` subdirectory
 > - OpenSSH installed (included in Windows 10/11)
 
+### Building the Vivado Project
+
+Before running the full pipeline, you must first recreate the Vivado project from the provided Tcl script.
+
+#### Windows (PowerShell):
+```powershell
+cd PYNQ_BLADEI
+cd deployment_pipeline
+cmd /c "C:\Xilinx\Vivado\2023.2\settings64.bat && vivado -mode batch -source bladei.tcl"
+```
+
+#### Linux / macOS:
+```bash
+cd path/to/deployment_pipeline
+source /path/to/Vivado/2023.2/settings64.sh
+vivado -mode batch -source bladei.tcl
+```
+
 ### Running the Pipeline
 
 #### Linux / macOS:
 1. Ensure you are on the same network as your PYNQ device (confirm with `ping` or network settings)
 
 2. Configure Environment Variables:
-   ```bash
+```bash
    export VIVADO_SETTINGS=/path/to/vivado/settings.sh
    export BENCH_ROOT=/path/to/benchmarks
-   ```
+```
 
 3. Run the Pipeline:
-   ```bash
+```bash
    cd deployment_pipeline
    chmod +x start_demo.sh
    ./start_demo.sh
-   ```
+```
 
-#### Windows:
+#### Windows (PowerShell):
 1. Ensure you are on the same network as your PYNQ device (confirm with `ping` or network settings)
 
 2. Configure Environment Variables:
-   ```powershell
+```powershell
    $env:VIVADO_SETTINGS="C:\Xilinx\Vivado\2023.2\settings64.bat"
    $env:BENCH_ROOT="path\to\benchmarks"
-   ```
+```
 
 3. Run the Pipeline (PowerShell as Administrator):
-   ```powershell
+```powershell
    cd $env:USERPROFILE
    cd path/to/PYNQ_BLADEI/deployment_pipeline
    powershell -ExecutionPolicy Bypass -File start_demo.ps1
-   ```
-
+```
 ---
 
 ## 📈 Sample Output
 ### Benign Bitstream
 ======= BLADEI Vetting: =======<br>
-Processing bitstream: AES-T2000_TjFree_20251218_152520.bit<br>
+Processing bitstream: AES-T200_benign_20260404_223130.bit<br>
 
-Trojan Detection: Benign [64.8% Confidence]<br>
-Family Classification: CRYPTO [100.0% Confidence]<br>
+Trojan Detection: Benign [67.61% Confidence]<br>
+Family Classification: CRYPTO [100.00% Confidence]<br>
 
 ACTION: Bitstream passed vetting. Proceed to deployment.<br>
 
 ======= Latency Summary: =======<br>
-Load Bitstream: 21.25 ms<br>
-Feature Extraction: 16462.59 ms<br>
-ML Prediction: 114.74 ms<br>
+Load Bitstream:         15.99 ms<br>
+Feature Extraction:     14987.85 ms<br>
+Prediction:             1365.26 ms<br>
+Total Latency:          16.37 s<br>
 
-Total Latency: 16.60 s<br>
+======= Performance Metrics: =======<br>
+Bitstream Size:         3.86 MB<br>
+Throughput:             0.24 MB/s<br>
+CPU Usage:              50.0%<br>
+Memory Used:            137.3 MB (29.9%)<br>
 
 ======= System Information: =======<br>
 System: Linux<br>
 Node Name: pynq<br>
-Release: 6.6.10-xilinx-v2024.1-g08e597ec1786<br>
-Version: #1 SMP PREEMPT Sat Apr 27 05:22:24 UTC 2024<br>
+Release: 4.14.0-xilinx-v2018.3<br>
+Version: #1 SMP PREEMPT Thu Feb 21 00:31:53 UTC 2019<br>
 Machine: armv7l<br>
 Processor: armv7l<br>
 
 ======= CPU Information: =======<br>
-CPU Cores: 2<br>
+CPU Cores: None<br>
 Logical Processors: 2<br>
-CPU Usage per Core: [0.4, 99.9]<br>
-Total RAM: 491.6640625 MB<br>
+CPU Usage per Core: [89.8, 17.1]<br>
+Total RAM: 496.6 MB<br>
 
 ### Malicious Bitstream
 ======= BLADEI Vetting: =======<br>
-Processing bitstream: b15-T300_TjIn_20260106_114122.bit<br>
+Processing bitstream: s15850-T100_malicious_20260404_170450.bit<br>
 
-Trojan Detection: Malicious [71.5% Confidence]<br>
-Family Classification: ITC99 [95.0% Confidence]<br>
+Trojan Detection: Malicious [50.67% Confidence]<br>
+Family Classification: ISCAS89 [87.00% Confidence]<br>
 
-ACTION: Bitstream quarantined -> ./mock_deployment/Quarantine/AES-T500_TjIn_20251218_163136.bit<br>
+ACTION: Bitstream quarantined -> /home/xilinx/jupyter_notebooks/PYNQ_BLADEI/mock_deployment/Quarantine/s15850-T100_malicious_20260404_170450.bit<br>
 ACTION: Deployment blocked.<br>
 
 ======= Latency Summary: =======<br>
-Load Bitstream: 21.64 ms<br>
-Feature Extraction: 16408.97 ms<br>
-ML Prediction: 131.15 ms<br>
+Load Bitstream:         16.16 ms<br>
+Feature Extraction:     15013.55 ms<br>
+Prediction:             1370.74 ms<br>
+Total Latency:          16.40 s<br>
 
-Total Latency: 16.56 s<br>
+======= Performance Metrics: =======<br>
+Bitstream Size:         3.86 MB<br>
+Throughput:             0.24 MB/s<br>
+CPU Usage:              50.0%<br>
+Memory Used:            141.1 MB (30.7%)<br>
 
 ======= System Information: =======<br>
 System: Linux<br>
 Node Name: pynq<br>
-Release: 6.6.10-xilinx-v2024.1-g08e597ec1786<br>
-Version: #1 SMP PREEMPT Sat Apr 27 05:22:24 UTC 2024<br>
+Release: 4.14.0-xilinx-v2018.3<br>
+Version: #1 SMP PREEMPT Thu Feb 21 00:31:53 UTC 2019<br>
 Machine: armv7l<br>
 Processor: armv7l<br>
 
 ======= CPU Information: =======<br>
-CPU Cores: 2<br>
+CPU Cores: None<br>
 Logical Processors: 2<br>
-CPU Usage per Core: [0.5, 98.8]<br>
-Total RAM: 491.6640625 MB<br>
+CPU Usage per Core: [17.5, 89.3]<br>
+Total RAM: 496.6 MB<br>
 
 ---
 
