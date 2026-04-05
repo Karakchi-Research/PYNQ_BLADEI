@@ -1,2 +1,0 @@
-out_memory.v,verilog,xil_defaultlib,../../../../trusthub_pynq_z1.gen/sources_1/ip/out_memory_1/sim/out_memory.v,
-glbl.v,Verilog,xil_defaultlib,glbl.v
