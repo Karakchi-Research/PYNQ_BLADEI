@@ -33,14 +33,16 @@ PYNQ_BLADEI/<br>
 ├── PYNQ_BLADEI.tar.gz ***# Pre-trained models (CNN, Random Forest, scalers and metadata)***<br>
 ├── trusthub_bitstreams.zip ***# Sample `.bit` files (benign/malicious variants)***<br>
 ├── model_components/ ***# Output directory for trained models***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── cnn_predictor.py ***# Lightweight CNN script for deployment***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;└── cnn_predictor.py ***# Lightweight CNN script for deployment***<br>
 └── deployment_pipeline/ ***# Complete local build and edge deployment workflow***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── start_demo.sh ***# Main orchestrator (Linux/macOS)***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── start_demo.ps1 ***# Main orchestrator (Windows)***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── bladei.tcl ***# Vivado project recreation script***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── run_random_build.tcl ***# Vivado TCL script (synthesis, implementation, bitstream)***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── trusthub_benchmarks/ ***# Re-engineered Trust-Hub benchmark designs***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── Constraints/ ***# PYNQ-Z1 XDC constraint files***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── mock_deployment/ ***# Output directory for generated bitstreams***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;└── trusthub_pynq_z1/ ***# Xilinx project for generating bitstreams***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── ip/ ***# Vivado IP core definitions (.xci) for AES memory blocks***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;└── mock_deployment/ ***# Output directory for generated bitstreams***<br>
 
 > ⚠️ **Notice:**
 > Due to file size constraints, the sample datasets are hosted separately on the [Releases](https://github.com/Bread2002/PYNQ_BLADEI/releases/tag/v4.0.0) page:
@@ -167,24 +169,25 @@ The `deployment_pipeline/` subdirectory contains everything needed to operate BL
 > - Your machine must be on the same network as your PYNQ device before running the pipeline
 > - Vivado v2023.2 or compatible version installed on your machine
 > - All re-engineered benchmarks in the `deployment_pipeline/` subdirectory
-> - OpenSSH installed (included in Windows 10/11)
+> - `OpenSSH` installed (included in Windows 10/11)
+> - `sshpass` installed (**Linux/macOS only**)
 
 ### Building the Vivado Project
 
 Before running the full pipeline, you must first recreate the Vivado project from the provided Tcl script.
-
-#### Windows (PowerShell):
-```powershell
-cd PYNQ_BLADEI
-cd deployment_pipeline
-cmd /c "C:\Xilinx\Vivado\2023.2\settings64.bat && vivado -mode batch -source bladei.tcl"
-```
 
 #### Linux / macOS:
 ```bash
 cd path/to/deployment_pipeline
 source /path/to/Vivado/2023.2/settings64.sh
 vivado -mode batch -source bladei.tcl
+```
+
+#### Windows (PowerShell):
+```powershell
+cd PYNQ_BLADEI
+cd deployment_pipeline
+cmd /c "C:\Xilinx\Vivado\2023.2\settings64.bat && vivado -mode batch -source bladei.tcl"
 ```
 
 ### Running the Pipeline
@@ -220,6 +223,10 @@ vivado -mode batch -source bladei.tcl
    cd path/to/PYNQ_BLADEI/deployment_pipeline
    powershell -ExecutionPolicy Bypass -File start_demo.ps1
 ```
+
+> ⚠️ **Note:**
+> Windows does not have a native `sshpass` equivalent, so you will be prompted to enter your PYNQ board password manually during the bitstream upload step. The default PYNQ password is `xilinx`.
+
 ---
 
 ## 📈 Sample Output
