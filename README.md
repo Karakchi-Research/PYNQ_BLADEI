@@ -112,7 +112,7 @@ This project is divided into two parts:
 > - Model components (via pre-trained archive)
 
 > ⚠️ **Note:**
-> If you are deploying to an **ARMv7** board, the official PYNQ images do not include PyTorch. The [PYNQ-Torch Project](https://github.com/Xilinx/PYNQ-Torch) provides a pre-built image of PYNQ v2.4 with PyTorch v1.2 optimized for ARMv7 boards. Download the [PYNQ-Torch v1.0 Image](https://github.com/manoharvhr/PYNQ-Torch/releases/tag/v1.0) to eliminate compatibility issues and optimize BLADEI for your device.
+> If you are deploying to an **ARMv7** board, the official PYNQ images do not include PyTorch. The [PYNQ-Torch Project](https://github.com/manoharvhr/PYNQ-Torch) provides a pre-built image of PYNQ v2.4 with PyTorch v1.2 optimized for ARMv7 boards. Download the [PYNQ-Torch v1.0 Image](https://github.com/manoharvhr/PYNQ-Torch/releases/tag/v1.0) to eliminate compatibility issues and optimize BLADEI for your device.
 
 1. Import the Model Archive to your PYNQ board via Jupyter Notebook or SSH/SFTP
 
