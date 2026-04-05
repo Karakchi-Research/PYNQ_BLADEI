@@ -178,15 +178,14 @@ Before running the full pipeline, you must first recreate the Vivado project fro
 
 #### Linux / macOS:
 ```bash
-cd path/to/deployment_pipeline
+cd path/to/PYNQ_BLADEI/deployment_pipeline
 source /path/to/Vivado/2023.2/settings64.sh
 vivado -mode batch -source bladei.tcl
 ```
 
 #### Windows (PowerShell):
 ```powershell
-cd PYNQ_BLADEI
-cd deployment_pipeline
+cd path/to/PYNQ_BLADEI/deployment_pipeline
 cmd /c "C:\Xilinx\Vivado\2023.2\settings64.bat && vivado -mode batch -source bladei.tcl"
 ```
 
@@ -203,7 +202,6 @@ cmd /c "C:\Xilinx\Vivado\2023.2\settings64.bat && vivado -mode batch -source bla
 
 3. Run the Pipeline:
 ```bash
-   cd deployment_pipeline
    chmod +x start_demo.sh
    ./start_demo.sh
 ```
