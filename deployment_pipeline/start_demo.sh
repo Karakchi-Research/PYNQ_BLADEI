@@ -3,7 +3,7 @@
 # PYNQ BLADEI: Bitstream-Level Abnormality Detection for Embedded Inference
 # March 29th, 2026
 # Description: This script orchestrates local bitstream generation and edge deployment for BLADEI vetting.
-#              It builds FPGA bitstreams locally using Vivado v2023.2 on your machine, then deploys to a
+#              It builds FPGA bitstreams locally using Vivado v2023.2 on your machine (the cloud), then deploys to a
 #              PYNQ-supported FPGA board (the edge) for real-time vetting with BLADEI.
 #              All configuration variables can be overridden via environment exports.
 #              The script includes robust error handling, user-friendly menus, and ensures proper cleanup of resources on exit.
@@ -21,8 +21,8 @@ PYNQ_HOST="${PYNQ_HOST:-xilinx@192.168.2.99}"
 PYNQ_PASS="${PYNQ_PASS:-xilinx}"
 
 # Vivado project paths (fixed)
-PROJECT_DIR="$SCRIPT_DIR/trusthub_pynq_z1"
-PROJECT_XPR="$PROJECT_DIR/trusthub_pynq_z1.xpr"
+PROJECT_DIR="$SCRIPT_DIR/bladei_pynq_z1"
+PROJECT_XPR="$PROJECT_DIR/bladei_pynq_z1.xpr"
 
 # Derived variables
 RUNS_DIR="$(dirname "$PROJECT_XPR")/$(basename "$PROJECT_XPR" .xpr).runs/impl_1"
