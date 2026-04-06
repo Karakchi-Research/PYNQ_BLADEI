@@ -20,11 +20,11 @@ $PYNQ_HOST       = if ($env:PYNQ_HOST)       { $env:PYNQ_HOST }       else { "xi
 $PYNQ_PASS       = if ($env:PYNQ_PASS)       { $env:PYNQ_PASS }       else { "xilinx" }
 
 # Vivado project paths (fixed)
-$PROJECT_DIR = "$SCRIPT_DIR\trusthub_pynq_z1"
-$PROJECT_XPR = "$PROJECT_DIR\trusthub_pynq_z1.xpr"
+$PROJECT_DIR = "$SCRIPT_DIR\bladei_pynq_z1"
+$PROJECT_XPR = "$PROJECT_DIR\bladei_pynq_z1.xpr"
 
 # Derived variables
-$RUNS_DIR = "$PROJECT_DIR\trusthub_pynq_z1.runs\impl_1"
+$RUNS_DIR = "$PROJECT_DIR\bladei_pynq_z1.runs\impl_1"
 
 # PYNQ deployment paths
 $PYNQ_DEPLOY_DIR = "/home/xilinx/jupyter_notebooks/PYNQ_BLADEI/mock_deployment"
