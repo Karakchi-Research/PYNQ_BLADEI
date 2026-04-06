@@ -14,7 +14,7 @@ $ErrorActionPreference = "Stop"
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Configuration variables (user-customizable)
-$VIVADO_SETTINGS = if ($env:VIVADO_SETTINGS) { $env:VIVADO_SETTINGS } else { "$env:ProgramFiles\Xilinx\Vivado\2023.2\settings64.bat" }
+$VIVADO_SETTINGS = if ($env:VIVADO_SETTINGS) { $env:VIVADO_SETTINGS } else { "C:\Xilinx\Vivado\2023.2\settings64.bat" }
 $BENCH_ROOT      = if ($env:BENCH_ROOT)      { $env:BENCH_ROOT }      else { "$SCRIPT_DIR\trusthub_benchmarks" }
 $PYNQ_HOST       = if ($env:PYNQ_HOST)       { $env:PYNQ_HOST }       else { "xilinx@192.168.2.99" }
 $PYNQ_PASS       = if ($env:PYNQ_PASS)       { $env:PYNQ_PASS }       else { "xilinx" }
