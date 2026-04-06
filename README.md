@@ -221,11 +221,9 @@ cmd /c "C:\path\to\Vivado\2023.2\settings64.bat && vivado -mode batch -source bl
    $env:VIVADO_SETTINGS="C:\path\to\Xilinx\Vivado\2023.2\settings64.bat"
 ```
 
-4. Run the Pipeline (PowerShell as Administrator):
+4. Run the Pipeline:
 ```powershell
-   cd $env:USERPROFILE
-   cd path/to/PYNQ_BLADEI/deployment_pipeline
-   powershell -ExecutionPolicy Bypass -File start_demo.ps1
+   powershell -File start_demo.ps1
 ```
 
 > ⚠️ **Note:**
