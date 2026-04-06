@@ -198,7 +198,7 @@ cmd /c "C:\Xilinx\Vivado\2023.2\settings64.bat && vivado -mode batch -source bla
   mkdir mock_deployment
 ```
 
-4. Configure Environment Variables:
+3. Configure Environment Variables:
 ```bash
    export VIVADO_SETTINGS=/path/to/vivado/settings.sh
    export BENCH_ROOT=/path/to/benchmarks

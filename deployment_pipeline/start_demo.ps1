@@ -14,10 +14,10 @@ $ErrorActionPreference = "Stop"
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Configuration variables (user-customizable)
-$VIVADO_SETTINGS = $env:VIVADO_SETTINGS -or "$env:ProgramFiles\Xilinx\Vivado\2023.2\settings64.bat"
-$BENCH_ROOT = $env:BENCH_ROOT -or "$SCRIPT_DIR\trusthub_benchmarks"
-$PYNQ_HOST = $env:PYNQ_HOST -or "xilinx@192.168.2.99"
-$PYNQ_PASS = $env:PYNQ_PASS -or "xilinx"
+$VIVADO_SETTINGS = if ($env:VIVADO_SETTINGS) { $env:VIVADO_SETTINGS } else { "$env:ProgramFiles\Xilinx\Vivado\2023.2\settings64.bat" }
+$BENCH_ROOT      = if ($env:BENCH_ROOT)      { $env:BENCH_ROOT }      else { "$SCRIPT_DIR\trusthub_benchmarks" }
+$PYNQ_HOST       = if ($env:PYNQ_HOST)       { $env:PYNQ_HOST }       else { "xilinx@192.168.2.99" }
+$PYNQ_PASS       = if ($env:PYNQ_PASS)       { $env:PYNQ_PASS }       else { "xilinx" }
 
 # Vivado project paths (fixed)
 $PROJECT_DIR = "$SCRIPT_DIR\trusthub_pynq_z1"
@@ -87,7 +87,7 @@ function Show-Menu {
     
     Write-Host "Available Benchmarks:"
     for ($i = 0; $i -lt $script:BENCHMARKS.Count; $i++) {
-        Write-Host "  $($i+1))) $($script:BENCHMARKS[$i])"
+        Write-Host "  $($i+1)) $($script:BENCHMARKS[$i])"
     }
     Write-Host "  0) Exit"
     Write-Host ""
@@ -172,23 +172,18 @@ function Run-Pipeline {
     
     # Check if this is an ISCAS85 benchmark (starts with 'c')
     $IS_ISCAS85 = $SELECTED_BENCH -match '^c\d'
-    $VARIANT = if ($IS_ISCAS85) { "malicious" } else { "benign" }
-    
-    # Determine source directory based on benchmark type
     if ($IS_ISCAS85) {
+        $VARIANT = "malicious"
         $SRC_DIR = $BENCH_DIR
     } else {
-        $SRC_DIR = "$BENCH_DIR\src\TjFree"
-        
-        if (-not (Test-Path $SRC_DIR)) {
-            Write-Host "WARNING: Benign variant not found, attempting malicious variant..."
-            $SRC_DIR = "$BENCH_DIR\src\TjIn"
+        # For non-ISCAS85, randomly choose between benign and malicious
+        $RandomChoice = Get-Random -Minimum 0 -Maximum 2
+        if ($RandomChoice -eq 0) {
+            $VARIANT = "benign"
+            $SRC_DIR = "$BENCH_DIR\src\TjFree"
+        } else {
             $VARIANT = "malicious"
-        }
-        
-        if (-not (Test-Path $SRC_DIR)) {
-            Write-Host "ERROR: Could not find variant directory in: $BENCH_DIR"
-            return
+            $SRC_DIR = "$BENCH_DIR\src\TjIn"
         }
     }
     
@@ -316,17 +311,9 @@ function Run-Pipeline {
     Write-Host "Target: $PYNQ_HOST"
     Write-Host ""
     
-    # Create deployment directory
-    ssh $PYNQ_HOST "mkdir -p '$PYNQ_DEPLOY_DIR'" 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: Could not connect to PYNQ board at $PYNQ_HOST"
-        Remove-Item $LOCAL_BITSTREAM -Force
-        return
-    }
-    
     # Upload bitstream
     $BITSTREAM_NAME = Split-Path $LOCAL_BITSTREAM -Leaf
-    scp $LOCAL_BITSTREAM "$PYNQ_HOST:$PYNQ_DEPLOY_DIR/$BITSTREAM_NAME" 2>$null
+    scp $LOCAL_BITSTREAM "${PYNQ_HOST}:$PYNQ_DEPLOY_DIR/$BITSTREAM_NAME" 2>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "ERROR: Failed to transfer bitstream to PYNQ board"
         Remove-Item $LOCAL_BITSTREAM -Force

@@ -176,25 +176,16 @@ run_pipeline() {
   if [[ "$SELECTED_BENCH" =~ ^c[0-9] ]]; then
     IS_ISCAS85=1
     VARIANT="malicious"
-  else
-    VARIANT="benign"
-  fi
-  
-  # Determine source directory based on benchmark type
-  if [ $IS_ISCAS85 -eq 1 ]; then
     SRC_DIR="$BENCH_DIR"
   else
-    SRC_DIR="$BENCH_DIR/src/TjFree"
-    
-    if [ ! -d "$SRC_DIR" ]; then
-      echo "WARNING: Benign variant not found, attempting malicious variant..."
-      SRC_DIR="$BENCH_DIR/src/TjIn"
+    # For non-ISCAS85, randomly choose between benign and malicious
+    RANDOM_CHOICE=$((RANDOM % 2))
+    if [ $RANDOM_CHOICE -eq 0 ]; then
+      VARIANT="benign"
+      SRC_DIR="$BENCH_DIR/src/TjFree"
+    else
       VARIANT="malicious"
-    fi
-    
-    if [ ! -d "$SRC_DIR" ]; then
-      echo "ERROR: Could not find variant directory in: $BENCH_DIR"
-      return 1
+      SRC_DIR="$BENCH_DIR/src/TjIn"
     fi
   fi
   
@@ -313,14 +304,6 @@ run_pipeline() {
   echo "=== Uploading the bitstream to the edge device... ==="
   echo "Target: $PYNQ_HOST"
   echo ""
-  
-  # Create deployment directory if it doesn't exist
-  sshpass -p "$PYNQ_PASS" ssh "$PYNQ_HOST" \
-    "printf '%s\n' '$PYNQ_PASS' | sudo -S -p '' mkdir -p '$PYNQ_DEPLOY_DIR' 2>/dev/null" || {
-      echo "ERROR: Could not connect to PYNQ board at $PYNQ_HOST"
-      rm -f "$LOCAL_BITSTREAM"
-      return 1
-    }
   
   # Upload bitstream to temp location (scp cannot sudo)
   BITSTREAM_NAME="$(basename "$LOCAL_BITSTREAM")"
