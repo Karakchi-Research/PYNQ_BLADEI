@@ -176,7 +176,7 @@ Before running the full pipeline, you must first recreate the Vivado project fro
 
 #### Linux / macOS:
 ```bash
-cd path/to/PYNQ_BLADEI/deployment_pipeline
+cd deployment_pipeline
 source /path/to/Vivado/2023.2/settings64.sh
 vivado -mode batch -source bladei.tcl
 ```
@@ -184,7 +184,7 @@ vivado -mode batch -source bladei.tcl
 #### Windows (PowerShell):
 ```powershell
 cd path/to/PYNQ_BLADEI/deployment_pipeline
-cmd /c "C:\Xilinx\Vivado\2023.2\settings64.bat && vivado -mode batch -source bladei.tcl"
+cmd /c "C:\path\to\Vivado\2023.2\settings64.bat && vivado -mode batch -source bladei.tcl"
 ```
 
 ### Running the Pipeline
@@ -194,14 +194,12 @@ cmd /c "C:\Xilinx\Vivado\2023.2\settings64.bat && vivado -mode batch -source bla
 
 2. Create the `mock_deployment/` Directory:
 ```bash
-  cd path/to/PYNQ_BLADEI/deployment_pipeline
   mkdir mock_deployment
 ```
 
 3. Configure Environment Variables:
 ```bash
-   export VIVADO_SETTINGS=/path/to/vivado/settings.sh
-   export BENCH_ROOT=/path/to/benchmarks
+   export VIVADO_SETTINGS=/path/to/Vivado/2023.2/settings64.sh
 ```
 
 4. Run the Pipeline:
@@ -215,14 +213,12 @@ cmd /c "C:\Xilinx\Vivado\2023.2\settings64.bat && vivado -mode batch -source bla
 
 2. Create the `mock_deployment/` Directory:
 ```powershell
-   cd path/to/PYNQ_BLADEI/deployment_pipeline
    mkdir mock_deployment
 ```
 
 3. Configure Environment Variables:
 ```powershell
-   $env:VIVADO_SETTINGS="C:\Xilinx\Vivado\2023.2\settings64.bat"
-   $env:BENCH_ROOT="path\to\benchmarks"
+   $env:VIVADO_SETTINGS="C:\path\to\Xilinx\Vivado\2023.2\settings64.bat"
 ```
 
 4. Run the Pipeline (PowerShell as Administrator):
