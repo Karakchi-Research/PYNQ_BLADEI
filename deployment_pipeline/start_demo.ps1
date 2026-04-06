@@ -2,7 +2,7 @@
 # PYNQ BLADEI: Bitstream-Level Abnormality Detection for Embedded Inference
 # March 29th, 2026
 # Description: This script orchestrates local bitstream generation and edge deployment for BLADEI vetting.
-#              It builds FPGA bitstreams locally using Vivado v2023.2 on your machine, then deploys to a
+#              It builds FPGA bitstreams locally using Vivado v2023.2 on your machine (the cloud), then deploys to a
 #              PYNQ-supported FPGA board (the edge) for real-time vetting with BLADEI.
 #              All configuration variables can be overridden via environment exports.
 #              The script includes robust error handling, user-friendly menus, and ensures proper cleanup of resources on exit.
@@ -273,8 +273,8 @@ function Run-Pipeline {
     Write-Host "Constraints prepared"
     Write-Host ""
     
-    # ----- Generate bitstream locally via Vivado -----
-    Write-Host "=== Generating bitstream locally (Vivado)... ==="
+    # ----- Generate bitstream via Vivado -----
+    Write-Host "=== Generating bitstream using Vivado v2023.2... ==="
     
     # Source Vivado settings (Windows batch file)
     cmd /c "call `"$VIVADO_SETTINGS`" && vivado -mode tcl -source run_random_build.tcl -tclargs `"$PROJECT_XPR`" `"$SRC_DIR`" $TOP"
