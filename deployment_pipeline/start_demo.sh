@@ -273,8 +273,8 @@ run_pipeline() {
   echo "Constraints prepared"
   echo ""
   
-  # ----- Generate bitstream locally via Vivado -----
-  echo "=== Generating bitstream locally (Vivado)... ==="
+  # ----- Generate bitstream via Vivado -----
+  echo "=== Generating bitstream using Vivado v2023.2... ==="
   
   source "$VIVADO_SETTINGS"
   vivado -mode tcl -source run_random_build.tcl -tclargs "$PROJECT_XPR" "$SRC_DIR" "$TOP" || {
