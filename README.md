@@ -39,8 +39,7 @@ PYNQ_BLADEI/<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── bladei.tcl ***# Vivado project recreation script***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── run_random_build.tcl ***# Vivado TCL script (synthesis, implementation, bitstream)***<br>
 &nbsp;&nbsp;&nbsp;&nbsp;├── Constraints/ ***# PYNQ-Z1 XDC constraint files***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;├── ip/ ***# Vivado IP core definitions (.xci) for AES memory blocks***<br>
-&nbsp;&nbsp;&nbsp;&nbsp;└── mock_deployment/ ***# Output directory for generated bitstreams***<br>
+&nbsp;&nbsp;&nbsp;&nbsp;└── ip/ ***# Vivado IP core definitions (.xci) for AES memory blocks***<br>
 
 > ⚠️ **Notice:**
 > Due to file size constraints, the sample datasets are hosted separately on the [Releases](https://github.com/Bread2002/PYNQ_BLADEI/releases/tag/v4.0.0) page:
@@ -161,6 +160,7 @@ The `deployment_pipeline/` subdirectory contains everything needed to operate BL
 - **`trusthub_benchmarks/`** — Re-engineered benchmark designs from Trust-Hub (AES, RS232, ITC'99, ISCAS'89, etc.) in both benign and malicious variants
 - **`Constraints/`** — PYNQ-Z1 constraint files for different benchmark types (AES, RS232, VHDL-based designs)
 - **`ip/`** — Vivado IP core definitions (`.xci`) for memory blocks used in the AES benchmark
+- **`mock_deployment/`** — Output directory for generated bitstreams (you'll create this)
 
 > **Requirements:**
 > - A supported FPGA board with PYNQ v2.4+
@@ -192,13 +192,19 @@ cmd /c "C:\Xilinx\Vivado\2023.2\settings64.bat && vivado -mode batch -source bla
 #### Linux / macOS:
 1. Ensure you are on the same network as your PYNQ device (confirm with `ping` or network settings)
 
-2. Configure Environment Variables:
+2. Create the `mock_deployment/` Directory:
+```bash
+  cd path/to/PYNQ_BLADEI/deployment_pipeline
+  mkdir mock_deployment
+```
+
+3. Configure Environment Variables:
 ```bash
    export VIVADO_SETTINGS=/path/to/vivado/settings.sh
    export BENCH_ROOT=/path/to/benchmarks
 ```
 
-3. Run the Pipeline:
+4. Run the Pipeline:
 ```bash
    chmod +x start_demo.sh
    ./start_demo.sh
@@ -207,13 +213,19 @@ cmd /c "C:\Xilinx\Vivado\2023.2\settings64.bat && vivado -mode batch -source bla
 #### Windows (PowerShell):
 1. Ensure you are on the same network as your PYNQ device (confirm with `ping` or network settings)
 
-2. Configure Environment Variables:
+2. Create the `mock_deployment/` Directory:
+```powershell
+   cd path/to/PYNQ_BLADEI/deployment_pipeline
+   mkdir mock_deployment
+```
+
+3. Configure Environment Variables:
 ```powershell
    $env:VIVADO_SETTINGS="C:\Xilinx\Vivado\2023.2\settings64.bat"
    $env:BENCH_ROOT="path\to\benchmarks"
 ```
 
-3. Run the Pipeline (PowerShell as Administrator):
+4. Run the Pipeline (PowerShell as Administrator):
 ```powershell
    cd $env:USERPROFILE
    cd path/to/PYNQ_BLADEI/deployment_pipeline
