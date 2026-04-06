@@ -42,7 +42,7 @@ PYNQ_BLADEI/<br>
 &nbsp;&nbsp;&nbsp;&nbsp;└── ip/ ***# Vivado IP core definitions (.xci) for AES memory blocks***<br>
 
 > ⚠️ **Notice:**
-> Due to file size constraints, the sample datasets are hosted separately on the [Releases](https://github.com/Bread2002/PYNQ_BLADEI/releases/tag/v4.0.0) page:
+> Due to file size constraints, the sample datasets are hosted separately on the [Releases](https://github.com/Karakchi-Research/PYNQ_BLADEI/releases/tag/v4.0.0) page:
 > - `trusthub_bitstreams.tar.gz.enc` — Benign and malicious bitstreams for model training and validation
 > - `trusthub_benchmarks.tar.gz.enc` — Re-engineered benchmark designs for the deployment pipeline (place in `deployment_pipeline/`)
 > 
