@@ -71,7 +71,7 @@ This project is divided into two parts:
 
 1. Clone the Repository:
    ```bash
-   git clone https://github.com/Bread2002/PYNQ_BLADEI.git
+   git clone https://github.com/Karakchi-Research/PYNQ_BLADEI.git
    cd PYNQ_BLADEI
    ```
 
