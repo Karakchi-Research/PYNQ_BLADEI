@@ -1,0 +1,193 @@
+=== Organizing bitstreams... ===
+Benign Samples: 545
+Malicious Samples: 838
+Total Samples: 1383
+
+=== Extracting byte sequences... ===
+Progress: |████████████████████| 100% (1383/1383)
+
+=== Extracting features (256 histogram + 10 statistical + 12 structural)... ===
+Progress: |████████████████████| 100% (1383/1383)
+
+=== Defining labels... ===
+Trojan Classes: Benign (0), Malicious (1)
+Family Classes: ['CRYPTO', 'COMMS', 'MCU/CPU', 'BUS/DISPLAY', 'ITC99', 'ISCAS89', 'ISCAS85']
+
+Family Distribution:
+  CRYPTO: 290
+  COMMS: 330
+  MCU/CPU: 40
+  BUS/DISPLAY: 40
+  ITC99: 289
+  ISCAS89: 100
+  ISCAS85: 294
+
+=== Splitting the dataset for training/testing (80/20)... ===
+Train Samples: 1106
+Test Samples: 277
+
+=== Applying StandardScaler normalization... ===
+
+=== Training Trojan Detector (Hybrid CNN) with Multi-Scale Convolutions... ===
+Device: cpu
+CNN: Sequence Length 4096, Embedding 32
+Statistical Features: 278 dimensions
+Architecture: Multi-scale CNN (512) + Stat MLP (64) -> Classifier
+Total Parameters: 282,497
+Class weights - Benign: 261, Malicious: 402, pos_weight: 0.7500
+Epoch   1/150 | Train Loss: 0.6075 | Train Acc: 0.5837 | Val Loss: 0.5307 | Val Acc: 0.6742 | Val Bal.Acc: 0.6285 | LR: 0.000200
+Epoch   2/150 | Train Loss: 0.5097 | Train Acc: 0.6998 | Val Loss: 0.4594 | Val Acc: 0.7647 | Val Bal.Acc: 0.7374 | LR: 0.000400
+Epoch   3/150 | Train Loss: 0.4667 | Train Acc: 0.7300 | Val Loss: 0.4281 | Val Acc: 0.7692 | Val Bal.Acc: 0.7432 | LR: 0.000600
+Epoch   4/150 | Train Loss: 0.4227 | Train Acc: 0.7602 | Val Loss: 0.3757 | Val Acc: 0.7783 | Val Bal.Acc: 0.7587 | LR: 0.000800
+Epoch   5/150 | Train Loss: 0.3981 | Train Acc: 0.7662 | Val Loss: 0.3798 | Val Acc: 0.7692 | Val Bal.Acc: 0.7432 | LR: 0.001000
+Epoch   6/150 | Train Loss: 0.3561 | Train Acc: 0.8054 | Val Loss: 0.3740 | Val Acc: 0.7647 | Val Bal.Acc: 0.7374 | LR: 0.001000
+Epoch   7/150 | Train Loss: 0.3310 | Train Acc: 0.8220 | Val Loss: 0.3178 | Val Acc: 0.8054 | Val Bal.Acc: 0.7932 | LR: 0.001000
+Epoch   8/150 | Train Loss: 0.2823 | Train Acc: 0.8326 | Val Loss: 0.3550 | Val Acc: 0.7828 | Val Bal.Acc: 0.7604 | LR: 0.001000
+Epoch   9/150 | Train Loss: 0.2871 | Train Acc: 0.8416 | Val Loss: 0.3022 | Val Acc: 0.8054 | Val Bal.Acc: 0.7892 | LR: 0.001000
+Epoch  10/150 | Train Loss: 0.2814 | Train Acc: 0.8492 | Val Loss: 0.2880 | Val Acc: 0.8326 | Val Bal.Acc: 0.8539 | LR: 0.001000
+Epoch  11/150 | Train Loss: 0.2696 | Train Acc: 0.8431 | Val Loss: 0.2877 | Val Acc: 0.8235 | Val Bal.Acc: 0.8464 | LR: 0.001000
+Epoch  12/150 | Train Loss: 0.2380 | Train Acc: 0.8688 | Val Loss: 0.2929 | Val Acc: 0.8145 | Val Bal.Acc: 0.8390 | LR: 0.001000
+Epoch  13/150 | Train Loss: 0.2426 | Train Acc: 0.8643 | Val Loss: 0.2875 | Val Acc: 0.7964 | Val Bal.Acc: 0.7978 | LR: 0.001000
+Epoch  14/150 | Train Loss: 0.2417 | Train Acc: 0.8522 | Val Loss: 0.2710 | Val Acc: 0.8326 | Val Bal.Acc: 0.8539 | LR: 0.001000
+Epoch  15/150 | Train Loss: 0.2350 | Train Acc: 0.8597 | Val Loss: 0.2656 | Val Acc: 0.8326 | Val Bal.Acc: 0.8539 | LR: 0.001000
+Epoch  16/150 | Train Loss: 0.2427 | Train Acc: 0.8612 | Val Loss: 0.2790 | Val Acc: 0.7873 | Val Bal.Acc: 0.7924 | LR: 0.001000
+Epoch  17/150 | Train Loss: 0.2460 | Train Acc: 0.8522 | Val Loss: 0.2920 | Val Acc: 0.8326 | Val Bal.Acc: 0.8519 | LR: 0.001000
+Epoch  18/150 | Train Loss: 0.2214 | Train Acc: 0.8612 | Val Loss: 0.2702 | Val Acc: 0.8326 | Val Bal.Acc: 0.8599 | LR: 0.001000
+Epoch  19/150 | Train Loss: 0.2353 | Train Acc: 0.8552 | Val Loss: 0.2639 | Val Acc: 0.8281 | Val Bal.Acc: 0.8562 | LR: 0.001000
+Epoch  20/150 | Train Loss: 0.2250 | Train Acc: 0.8522 | Val Loss: 0.2680 | Val Acc: 0.8190 | Val Bal.Acc: 0.8427 | LR: 0.001000
+Epoch  21/150 | Train Loss: 0.2105 | Train Acc: 0.8688 | Val Loss: 0.2970 | Val Acc: 0.8326 | Val Bal.Acc: 0.8519 | LR: 0.001000
+Epoch  22/150 | Train Loss: 0.2035 | Train Acc: 0.8567 | Val Loss: 0.2758 | Val Acc: 0.7964 | Val Bal.Acc: 0.7978 | LR: 0.001000
+Epoch  23/150 | Train Loss: 0.1954 | Train Acc: 0.8612 | Val Loss: 0.2353 | Val Acc: 0.8281 | Val Bal.Acc: 0.8501 | LR: 0.001000
+Epoch  24/150 | Train Loss: 0.1913 | Train Acc: 0.8748 | Val Loss: 0.2713 | Val Acc: 0.8326 | Val Bal.Acc: 0.8519 | LR: 0.001000
+Epoch  25/150 | Train Loss: 0.2113 | Train Acc: 0.8643 | Val Loss: 0.2370 | Val Acc: 0.8054 | Val Bal.Acc: 0.7972 | LR: 0.001000
+Epoch  26/150 | Train Loss: 0.2044 | Train Acc: 0.8522 | Val Loss: 0.2262 | Val Acc: 0.8326 | Val Bal.Acc: 0.8519 | LR: 0.001000
+Epoch  27/150 | Train Loss: 0.2011 | Train Acc: 0.8492 | Val Loss: 0.2451 | Val Acc: 0.7964 | Val Bal.Acc: 0.7978 | LR: 0.001000
+Epoch  28/150 | Train Loss: 0.1945 | Train Acc: 0.8974 | Val Loss: 0.2177 | Val Acc: 0.8643 | Val Bal.Acc: 0.8639 | LR: 0.001000
+Epoch  29/150 | Train Loss: 0.1729 | Train Acc: 0.8884 | Val Loss: 0.2627 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  30/150 | Train Loss: 0.1637 | Train Acc: 0.9065 | Val Loss: 0.2518 | Val Acc: 0.8824 | Val Bal.Acc: 0.8586 | LR: 0.001000
+Epoch  31/150 | Train Loss: 0.1797 | Train Acc: 0.8884 | Val Loss: 0.2166 | Val Acc: 0.8643 | Val Bal.Acc: 0.8477 | LR: 0.001000
+Epoch  32/150 | Train Loss: 0.1697 | Train Acc: 0.8944 | Val Loss: 0.2016 | Val Acc: 0.8643 | Val Bal.Acc: 0.8538 | LR: 0.001000
+Epoch  33/150 | Train Loss: 0.1631 | Train Acc: 0.9065 | Val Loss: 0.1936 | Val Acc: 0.8824 | Val Bal.Acc: 0.8667 | LR: 0.001000
+Epoch  34/150 | Train Loss: 0.1725 | Train Acc: 0.8899 | Val Loss: 0.1954 | Val Acc: 0.8597 | Val Bal.Acc: 0.8601 | LR: 0.001000
+Epoch  35/150 | Train Loss: 0.1597 | Train Acc: 0.9125 | Val Loss: 0.1820 | Val Acc: 0.9050 | Val Bal.Acc: 0.9196 | LR: 0.001000
+Epoch  36/150 | Train Loss: 0.1690 | Train Acc: 0.8944 | Val Loss: 0.1927 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  37/150 | Train Loss: 0.1660 | Train Acc: 0.8914 | Val Loss: 0.2040 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  38/150 | Train Loss: 0.1840 | Train Acc: 0.8959 | Val Loss: 0.1901 | Val Acc: 0.8733 | Val Bal.Acc: 0.8633 | LR: 0.001000
+Epoch  39/150 | Train Loss: 0.1563 | Train Acc: 0.8974 | Val Loss: 0.2239 | Val Acc: 0.8733 | Val Bal.Acc: 0.8633 | LR: 0.001000
+Epoch  40/150 | Train Loss: 0.1571 | Train Acc: 0.9005 | Val Loss: 0.1644 | Val Acc: 0.8688 | Val Bal.Acc: 0.8595 | LR: 0.001000
+Epoch  41/150 | Train Loss: 0.1520 | Train Acc: 0.8944 | Val Loss: 0.1607 | Val Acc: 0.8688 | Val Bal.Acc: 0.8595 | LR: 0.001000
+Epoch  42/150 | Train Loss: 0.1499 | Train Acc: 0.8959 | Val Loss: 0.1831 | Val Acc: 0.8733 | Val Bal.Acc: 0.8633 | LR: 0.001000
+Epoch  43/150 | Train Loss: 0.1485 | Train Acc: 0.9035 | Val Loss: 0.1988 | Val Acc: 0.8869 | Val Bal.Acc: 0.8644 | LR: 0.001000
+Epoch  44/150 | Train Loss: 0.1478 | Train Acc: 0.8974 | Val Loss: 0.2164 | Val Acc: 0.9050 | Val Bal.Acc: 0.9055 | LR: 0.001000
+Epoch  45/150 | Train Loss: 0.1563 | Train Acc: 0.9020 | Val Loss: 0.2093 | Val Acc: 0.9050 | Val Bal.Acc: 0.9136 | LR: 0.001000
+Epoch  46/150 | Train Loss: 0.1579 | Train Acc: 0.9110 | Val Loss: 0.2060 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  47/150 | Train Loss: 0.1396 | Train Acc: 0.9065 | Val Loss: 0.1555 | Val Acc: 0.8688 | Val Bal.Acc: 0.8595 | LR: 0.000500
+Epoch  48/150 | Train Loss: 0.1504 | Train Acc: 0.9005 | Val Loss: 0.1903 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  49/150 | Train Loss: 0.1536 | Train Acc: 0.9020 | Val Loss: 0.1639 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  50/150 | Train Loss: 0.1528 | Train Acc: 0.8914 | Val Loss: 0.1576 | Val Acc: 0.9050 | Val Bal.Acc: 0.9116 | LR: 0.001000
+Epoch  51/150 | Train Loss: 0.1597 | Train Acc: 0.8974 | Val Loss: 0.2393 | Val Acc: 0.9050 | Val Bal.Acc: 0.9116 | LR: 0.001000
+Epoch  52/150 | Train Loss: 0.1516 | Train Acc: 0.9095 | Val Loss: 0.1991 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  53/150 | Train Loss: 0.1551 | Train Acc: 0.8854 | Val Loss: 0.1622 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  54/150 | Train Loss: 0.1500 | Train Acc: 0.9050 | Val Loss: 0.1805 | Val Acc: 0.9050 | Val Bal.Acc: 0.9116 | LR: 0.001000
+Epoch  55/150 | Train Loss: 0.1484 | Train Acc: 0.8914 | Val Loss: 0.1699 | Val Acc: 0.8688 | Val Bal.Acc: 0.8595 | LR: 0.001000
+Epoch  56/150 | Train Loss: 0.1431 | Train Acc: 0.9065 | Val Loss: 0.1643 | Val Acc: 0.8643 | Val Bal.Acc: 0.8477 | LR: 0.001000
+Epoch  57/150 | Train Loss: 0.1484 | Train Acc: 0.9125 | Val Loss: 0.1620 | Val Acc: 0.8643 | Val Bal.Acc: 0.8477 | LR: 0.001000
+Epoch  58/150 | Train Loss: 0.1411 | Train Acc: 0.8959 | Val Loss: 0.1934 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.000500
+Epoch  59/150 | Train Loss: 0.1391 | Train Acc: 0.9110 | Val Loss: 0.1703 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  60/150 | Train Loss: 0.1389 | Train Acc: 0.9065 | Val Loss: 0.1737 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  61/150 | Train Loss: 0.1406 | Train Acc: 0.8989 | Val Loss: 0.1943 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  62/150 | Train Loss: 0.1395 | Train Acc: 0.9035 | Val Loss: 0.1584 | Val Acc: 0.9005 | Val Bal.Acc: 0.9098 | LR: 0.001000
+Epoch  63/150 | Train Loss: 0.1442 | Train Acc: 0.9035 | Val Loss: 0.1619 | Val Acc: 0.8688 | Val Bal.Acc: 0.8595 | LR: 0.001000
+Epoch  64/150 | Train Loss: 0.1338 | Train Acc: 0.9080 | Val Loss: 0.1663 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  65/150 | Train Loss: 0.1445 | Train Acc: 0.9065 | Val Loss: 0.1518 | Val Acc: 0.9050 | Val Bal.Acc: 0.9116 | LR: 0.001000
+Epoch  66/150 | Train Loss: 0.1425 | Train Acc: 0.9065 | Val Loss: 0.1541 | Val Acc: 0.8824 | Val Bal.Acc: 0.8586 | LR: 0.001000
+Epoch  67/150 | Train Loss: 0.1391 | Train Acc: 0.9005 | Val Loss: 0.1508 | Val Acc: 0.8688 | Val Bal.Acc: 0.8656 | LR: 0.001000
+Epoch  68/150 | Train Loss: 0.1427 | Train Acc: 0.9125 | Val Loss: 0.1653 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  69/150 | Train Loss: 0.1412 | Train Acc: 0.8974 | Val Loss: 0.1538 | Val Acc: 0.8688 | Val Bal.Acc: 0.8595 | LR: 0.000500
+Epoch  70/150 | Train Loss: 0.1488 | Train Acc: 0.9020 | Val Loss: 0.1829 | Val Acc: 0.9050 | Val Bal.Acc: 0.9116 | LR: 0.001000
+Epoch  71/150 | Train Loss: 0.1448 | Train Acc: 0.9050 | Val Loss: 0.1607 | Val Acc: 0.9050 | Val Bal.Acc: 0.9136 | LR: 0.001000
+Epoch  72/150 | Train Loss: 0.1444 | Train Acc: 0.9035 | Val Loss: 0.1852 | Val Acc: 0.8643 | Val Bal.Acc: 0.8477 | LR: 0.001000
+Epoch  73/150 | Train Loss: 0.1452 | Train Acc: 0.9110 | Val Loss: 0.1570 | Val Acc: 0.9005 | Val Bal.Acc: 0.9078 | LR: 0.001000
+Epoch  74/150 | Train Loss: 0.1465 | Train Acc: 0.8974 | Val Loss: 0.2534 | Val Acc: 0.9050 | Val Bal.Acc: 0.9116 | LR: 0.001000
+Epoch  75/150 | Train Loss: 0.1521 | Train Acc: 0.8944 | Val Loss: 0.1590 | Val Acc: 0.8597 | Val Bal.Acc: 0.8601 | LR: 0.001000
+Epoch  76/150 | Train Loss: 0.1390 | Train Acc: 0.8944 | Val Loss: 0.2164 | Val Acc: 0.9050 | Val Bal.Acc: 0.9116 | LR: 0.001000
+Epoch  77/150 | Train Loss: 0.1401 | Train Acc: 0.9035 | Val Loss: 0.1566 | Val Acc: 0.8643 | Val Bal.Acc: 0.8538 | LR: 0.001000
+Epoch  78/150 | Train Loss: 0.1372 | Train Acc: 0.9080 | Val Loss: 0.1771 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  79/150 | Train Loss: 0.1380 | Train Acc: 0.8959 | Val Loss: 0.1608 | Val Acc: 0.9050 | Val Bal.Acc: 0.9116 | LR: 0.001000
+Epoch  80/150 | Train Loss: 0.1295 | Train Acc: 0.8959 | Val Loss: 0.1584 | Val Acc: 0.9005 | Val Bal.Acc: 0.9078 | LR: 0.000500
+Epoch  81/150 | Train Loss: 0.1312 | Train Acc: 0.9065 | Val Loss: 0.1843 | Val Acc: 0.8688 | Val Bal.Acc: 0.8575 | LR: 0.001000
+Epoch  82/150 | Train Loss: 0.1342 | Train Acc: 0.8959 | Val Loss: 0.1529 | Val Acc: 0.8643 | Val Bal.Acc: 0.8538 | LR: 0.001000
+Epoch  83/150 | Train Loss: 0.1293 | Train Acc: 0.9035 | Val Loss: 0.1480 | Val Acc: 0.8643 | Val Bal.Acc: 0.8538 | LR: 0.001000
+Epoch  84/150 | Train Loss: 0.1251 | Train Acc: 0.8989 | Val Loss: 0.1369 | Val Acc: 0.8643 | Val Bal.Acc: 0.8498 | LR: 0.001000
+Epoch  85/150 | Train Loss: 0.1395 | Train Acc: 0.9035 | Val Loss: 0.1805 | Val Acc: 0.8643 | Val Bal.Acc: 0.8477 | LR: 0.001000
+Early stopping at epoch 85
+
+*** Trojan Detector - Test Set Evaluation ***
+
+              precision    recall  f1-score   support
+
+      Benign       0.92      0.86      0.89        88
+   Malicious       0.91      0.95      0.93       134
+
+    accuracy                           0.91       222
+   macro avg       0.91      0.91      0.91       222
+weighted avg       0.91      0.91      0.91       222
+
+*** Trojan Detector - Confusion Matrix ***
+
+		  Predicted
+		  Benign	Malicious
+Actual Benign    |	76		12
+Actual Malicious |	7		127
+
+=== Training Family Classifier (Random Forest - deterministic choice)... ===
+
+*** Family Classifier - Test Set Evaluation ***
+
+              precision    recall  f1-score   support
+
+      CRYPTO       1.00      1.00      1.00        67
+       COMMS       1.00      1.00      1.00        57
+     MCU/CPU       1.00      1.00      1.00         9
+ BUS/DISPLAY       1.00      1.00      1.00         4
+       ITC99       1.00      1.00      1.00        66
+     ISCAS89       1.00      1.00      1.00        21
+     ISCAS85       1.00      1.00      1.00        53
+
+    accuracy                           1.00       277
+   macro avg       1.00      1.00      1.00       277
+weighted avg       1.00      1.00      1.00       277
+
+*** Family Classifier - Confusion Matrix ***
+
+		CRYPTO	COMMS	MCU/CPU	BUS/DIS	ITC99	ISCAS89	ISCAS85
+CRYPTO	|67	0	0	0	0	0	0
+COMMS	|0	57	0	0	0	0	0
+MCU/CPU	|0	0	9	0	0	0	0
+BUS/DIS	|0	0	0	4	0	0	0
+ITC99	|0	0	0	0	66	0	0
+ISCAS89	|0	0	0	0	0	21	0
+ISCAS85	|0	0	0	0	0	0	53
+
+=== Exporting and Quantizing Models for PYNQ Deployment... ===
+*** Saving PyTorch Model... ***
+  ✓ PyTorch model saved: cnn_trojan.pt (1.08 MB)
+
+*** Saving Feature Scaler... ***
+  ✓ Scaler parameters saved: scaler.json (0.01 MB)
+
+*** Exporting Random Forest Classifier... ***
+  ✓ Random Forest saved: family_rf.json (0.25 MB)
+
+*** Creating Deployment Metadata... ***
+
+*** Compressing Pipeline for PYNQ Deployment... ***
+  ✓ Archive created: PYNQ_BLADEI.tar.gz (1.04 MB)
+
+*** Model Export Summary ***
+  CNN (TFLite):         1.08 MB
+  Family RF (JSON):     0.25 MB
+  Compressed Archive:   1.04 MB
+  Total Uncompressed:   1.3459835052490234 MB
+
+  ✓ Optimized for PYNQ deployment!
