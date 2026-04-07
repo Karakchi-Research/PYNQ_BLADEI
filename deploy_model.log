@@ -1,0 +1,34 @@
+======= BLADEI Vetting: =======
+Processing bitstream: s15850-T100_malicious_20260404_170450.bit
+
+Trojan Detection: Malicious [50.67% Confidence]
+Family Classification: ISCAS89 [87.00% Confidence]
+
+ACTION: Bitstream quarantined -> /home/xilinx/jupyter_notebooks/PYNQ_BLADEI/mock_deployment/Quarantine/s15850-T100_malicious_20260404_170450.bit
+ACTION: Deployment blocked.
+
+======= Latency Summary: =======
+Load Bitstream:         16.16 ms
+Feature Extraction:     15013.55 ms
+Prediction:             1370.74 ms
+Total Latency:          16.40 s
+
+======= Performance Metrics: =======
+Bitstream Size:         3.86 MB
+Throughput:             0.24 MB/s
+CPU Usage:              50.0%
+Memory Used:            141.1 MB (30.7%)
+
+======= System Information: =======
+System: Linux
+Node Name: pynq
+Release: 4.14.0-xilinx-v2018.3
+Version: #1 SMP PREEMPT Thu Feb 21 00:31:53 UTC 2019
+Machine: armv7l
+Processor: armv7l
+
+======= CPU Information: =======
+CPU Cores: None
+Logical Processors: 2
+CPU Usage per Core: [17.5, 89.3]
+Total RAM: 496.6 MB
