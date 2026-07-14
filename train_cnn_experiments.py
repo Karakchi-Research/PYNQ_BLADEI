@@ -2,20 +2,28 @@
 # PYNQ BLADEI: Bitstream-Level Abnormality Detection for Embedded Inference
 # Description: Secluded research experiment harness for comparing 1D / 2D / 3D CNN
 #              trojan detectors on the same hybrid (conv branch + statistical branch)
-#              design. Only the convolution dimensionality changes between variants,
-#              so accuracy differences can be attributed to the spatial reshaping of
-#              the byte sequence rather than to unrelated architecture changes.
+#              design. A single generic N-D model is used so the ONLY difference
+#              between variants is the convolution dimensionality -- accuracy deltas
+#              can therefore be attributed to how the byte sequence is folded into
+#              1D / 2D / 3D, not to unrelated architecture changes.
 #
-#              This script is intentionally kept separate from train_model.py. It
-#              reuses train_model.py's feature-extraction / data pipeline via import
-#              so the two never drift apart.
+#              Kept separate from train_model.py; reuses its feature-extraction /
+#              data pipeline via import so the two never drift apart.
+#
+# Accuracy-oriented features:
+#   - BatchNorm in every conv branch (applied identically to all variants)
+#   - Balanced pos_weight computed from the data (not a fixed value)
+#   - Decision threshold tuned on the validation set to maximize balanced accuracy
+#   - Multi-seed evaluation (--seeds) with a fresh train/test split per seed, so the
+#     comparison reports mean +/- std rather than a single lucky split
+#   - Saves the best model per variant and writes results.csv
 #
 # Usage:
-#   python train_cnn_experiments.py --model all      # run 1D, 2D and 3D, print comparison
-#   python train_cnn_experiments.py --model 2d       # run a single variant
-#   python train_cnn_experiments.py --model 3d --epochs 50
+#   python train_cnn_experiments.py --model all --seeds 5
+#   python train_cnn_experiments.py --model 3d --batch-size 16     # smaller batch if OOM
+#   python train_cnn_experiments.py --model 2d --epochs 3 --seeds 1  # quick smoke test
 #
-# Reshaping (embedding_dim is used as the channel dimension for every variant, so the
+# Reshaping (embedding_dim is the channel dimension for every variant, so the
 # comparison is fair):
 #   1D: (B, embed, 4096)
 #   2D: (B, embed, 64, 64)
@@ -26,6 +34,8 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 import argparse
+import csv
+import os
 import numpy as np
 
 import torch
@@ -35,11 +45,11 @@ from torch.utils.data import DataLoader, TensorDataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, confusion_matrix, balanced_accuracy_score
+from sklearn.metrics import (classification_report, confusion_matrix,
+                             balanced_accuracy_score, f1_score, recall_score)
 
-# Reuse the exact data pipeline from the main training script so the experiment stays
-# faithful to production feature extraction. train_model.py guards main() behind
-# __main__, so importing it only pulls in constants + helper functions (and sets seeds).
+# Reuse the exact data pipeline from the main training script. train_model.py guards
+# main() behind __main__, so importing only pulls in constants + helper functions.
 import train_model as tm
 from train_model import (
     SEQUENCE_LENGTH,
@@ -52,201 +62,110 @@ from train_model import (
     NUM_STATISTICAL_FEATURES,
     DEVICE,
     train_hybrid_epoch,
-    evaluate_hybrid,
 )
 
 
 # ---------------------------------------------------------------------------
-# Reshape geometry: how the flat byte sequence is folded into 1D / 2D / 3D.
-# Each entry must multiply back to SEQUENCE_LENGTH.
+# Reshape geometry: fold the flat byte sequence into 1D / 2D / 3D grids.
+# Each product must equal SEQUENCE_LENGTH.
 # ---------------------------------------------------------------------------
-def _factor_2d(seq_length):
-    # Squarest H x W grid such that H * W == seq_length.
-    h = int(round(seq_length ** 0.5))
-    while h > 1 and seq_length % h != 0:
+def _factor_2d(n):
+    h = int(round(n ** 0.5))
+    while h > 1 and n % h != 0:
         h -= 1
-    return h, seq_length // h
+    return (h, n // h)
 
 
-def _factor_3d(seq_length):
-    # Cube-ish D x H x W such that D * H * W == seq_length.
-    d = int(round(seq_length ** (1.0 / 3.0)))
-    while d > 1 and seq_length % d != 0:
+def _factor_3d(n):
+    d = int(round(n ** (1.0 / 3.0)))
+    while d > 1 and n % d != 0:
         d -= 1
-    rest = seq_length // d
-    h, w = _factor_2d(rest)
-    return d, h, w
+    h, w = _factor_2d(n // d)
+    return (d, h, w)
 
 
-GRID_2D = _factor_2d(SEQUENCE_LENGTH)          # e.g. (64, 64) for 4096
-GRID_3D = _factor_3d(SEQUENCE_LENGTH)          # e.g. (16, 16, 16) for 4096
+# Grid + default conv kernel scales per dimensionality. Kernel 11 is dropped for 3D
+# (too large for a ~16^3 volume); 3 scales are used there.
+GRIDS = {1: (SEQUENCE_LENGTH,), 2: _factor_2d(SEQUENCE_LENGTH), 3: _factor_3d(SEQUENCE_LENGTH)}
+SCALES = {1: (3, 5, 7, 11), 2: (3, 5, 7, 11), 3: (3, 5, 7)}
 
-
-# ---------------------------------------------------------------------------
-# Shared statistical-features branch. Identical across all three variants so the
-# only thing that differs between experiments is the convolution dimensionality.
-# ---------------------------------------------------------------------------
-def _make_stat_branch(num_stat_features, dropout):
-    return nn.Sequential(
-        nn.Linear(num_stat_features, 128),
-        nn.ReLU(),
-        nn.Dropout(dropout),
-        nn.Linear(128, 64),
-        nn.ReLU(),
-    )
-
-
-def _init_weights(model):
-    conv_types = (nn.Conv1d, nn.Conv2d, nn.Conv3d)
-    for module in model.modules():
-        if isinstance(module, conv_types):
-            nn.init.xavier_uniform_(module.weight)
-            if module.bias is not None:
-                nn.init.zeros_(module.bias)
-        elif isinstance(module, nn.Linear):
-            nn.init.xavier_uniform_(module.weight)
-            if module.bias is not None:
-                nn.init.zeros_(module.bias)
+_CONV = {1: nn.Conv1d, 2: nn.Conv2d, 3: nn.Conv3d}
+_BN = {1: nn.BatchNorm1d, 2: nn.BatchNorm2d, 3: nn.BatchNorm3d}
 
 
 # ---------------------------------------------------------------------------
-# 1D variant: mirrors the production HybridCNN so it acts as the baseline.
+# One generic hybrid model, parameterized by spatial dimensionality (1/2/3).
 # ---------------------------------------------------------------------------
-class HybridCNN1D(nn.Module):
-    KIND = "1d"
-
-    def __init__(self, vocab_size=256, embedding_dim=EMBEDDING_DIM,
+class HybridCNN_ND(nn.Module):
+    def __init__(self, dim, vocab_size=256, embedding_dim=EMBEDDING_DIM,
                  num_stat_features=NUM_STATISTICAL_FEATURES, dropout=DROPOUT):
         super().__init__()
+        assert dim in (1, 2, 3)
+        self.dim = dim
+        self.grid = GRIDS[dim]
+        self.scales = SCALES[dim]
+        Conv, BN = _CONV[dim], _BN[dim]
+
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
 
-        # Multi-scale convolutions (kernels 3/5/7/11), 64 filters each.
-        self.conv = nn.ModuleList([
-            nn.Conv1d(embedding_dim, 64, kernel_size=k, padding=k // 2)
-            for k in (3, 5, 7, 11)
-        ])
-        # Second convolution layer per branch, 64 -> 128.
-        self.conv_deep = nn.ModuleList([
-            nn.Conv1d(64, 128, kernel_size=3, padding=1) for _ in range(4)
-        ])
+        # Multi-scale branch: Conv -> BN -> ReLU -> Conv(3) -> BN -> ReLU, 64 then 128.
+        self.branches = nn.ModuleList()
+        for k in self.scales:
+            self.branches.append(nn.ModuleDict({
+                "conv": Conv(embedding_dim, 64, kernel_size=k, padding=k // 2),
+                "bn": BN(64),
+                "deep": Conv(64, 128, kernel_size=3, padding=1),
+                "bn_deep": BN(128),
+            }))
 
-        self.stat_fc = _make_stat_branch(num_stat_features, dropout)
-        self.dropout = nn.Dropout(dropout)
-        self.classifier = nn.Sequential(
-            nn.Linear(4 * 128 + 64, 128), nn.ReLU(), nn.Dropout(dropout),
-            nn.Linear(128, 32), nn.ReLU(), nn.Dropout(dropout),
-            nn.Linear(32, 1),
+        # Statistical-features branch (identical across variants).
+        self.stat_fc = nn.Sequential(
+            nn.Linear(num_stat_features, 128), nn.ReLU(), nn.Dropout(dropout),
+            nn.Linear(128, 64), nn.ReLU(),
         )
-        _init_weights(self)
 
-    def forward(self, x_seq, x_stat):
-        emb = self.embedding(x_seq)               # (B, L, E)
-        emb = emb.permute(0, 2, 1)                # (B, E, L)
-
-        feats = []
-        for conv, deep in zip(self.conv, self.conv_deep):
-            c = torch.relu(conv(emb))
-            c = torch.relu(deep(c))
-            feats.append(torch.amax(c, dim=2))    # global max pool over length
-        cnn_features = torch.cat(feats, dim=1)    # (B, 512)
-
-        stat_features = self.stat_fc(x_stat)      # (B, 64)
-        combined = self.dropout(torch.cat([cnn_features, stat_features], dim=1))
-        return self.classifier(combined).squeeze(1)
-
-
-# ---------------------------------------------------------------------------
-# 2D variant: byte sequence folded into a GRID_2D image, embedding_dim as channels.
-# ---------------------------------------------------------------------------
-class HybridCNN2D(nn.Module):
-    KIND = "2d"
-
-    def __init__(self, vocab_size=256, embedding_dim=EMBEDDING_DIM,
-                 num_stat_features=NUM_STATISTICAL_FEATURES, dropout=DROPOUT,
-                 grid=GRID_2D):
-        super().__init__()
-        self.grid = grid
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-
-        self.conv = nn.ModuleList([
-            nn.Conv2d(embedding_dim, 64, kernel_size=k, padding=k // 2)
-            for k in (3, 5, 7, 11)
-        ])
-        self.conv_deep = nn.ModuleList([
-            nn.Conv2d(64, 128, kernel_size=3, padding=1) for _ in range(4)
-        ])
-
-        self.stat_fc = _make_stat_branch(num_stat_features, dropout)
-        self.dropout = nn.Dropout(dropout)
-        self.classifier = nn.Sequential(
-            nn.Linear(4 * 128 + 64, 128), nn.ReLU(), nn.Dropout(dropout),
-            nn.Linear(128, 32), nn.ReLU(), nn.Dropout(dropout),
-            nn.Linear(32, 1),
-        )
-        _init_weights(self)
-
-    def forward(self, x_seq, x_stat):
-        b = x_seq.size(0)
-        h, w = self.grid
-        emb = self.embedding(x_seq)               # (B, L, E)
-        emb = emb.view(b, h, w, -1).permute(0, 3, 1, 2)  # (B, E, H, W)
-
-        feats = []
-        for conv, deep in zip(self.conv, self.conv_deep):
-            c = torch.relu(conv(emb))
-            c = torch.relu(deep(c))
-            feats.append(torch.amax(c, dim=(2, 3)))   # global max pool over H,W
-        cnn_features = torch.cat(feats, dim=1)    # (B, 512)
-
-        stat_features = self.stat_fc(x_stat)      # (B, 64)
-        combined = self.dropout(torch.cat([cnn_features, stat_features], dim=1))
-        return self.classifier(combined).squeeze(1)
-
-
-# ---------------------------------------------------------------------------
-# 3D variant: byte sequence folded into a GRID_3D volume, embedding_dim as channels.
-# Kernel 11 is dropped (too large for the ~16^3 volume); three scales are used.
-# ---------------------------------------------------------------------------
-class HybridCNN3D(nn.Module):
-    KIND = "3d"
-
-    def __init__(self, vocab_size=256, embedding_dim=EMBEDDING_DIM,
-                 num_stat_features=NUM_STATISTICAL_FEATURES, dropout=DROPOUT,
-                 grid=GRID_3D):
-        super().__init__()
-        self.grid = grid
-        self.scales = (3, 5, 7)
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-
-        self.conv = nn.ModuleList([
-            nn.Conv3d(embedding_dim, 64, kernel_size=k, padding=k // 2)
-            for k in self.scales
-        ])
-        self.conv_deep = nn.ModuleList([
-            nn.Conv3d(64, 128, kernel_size=3, padding=1) for _ in self.scales
-        ])
-
-        self.stat_fc = _make_stat_branch(num_stat_features, dropout)
-        self.dropout = nn.Dropout(dropout)
         cnn_feat_dim = len(self.scales) * 128
+        self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Sequential(
             nn.Linear(cnn_feat_dim + 64, 128), nn.ReLU(), nn.Dropout(dropout),
             nn.Linear(128, 32), nn.ReLU(), nn.Dropout(dropout),
             nn.Linear(32, 1),
         )
-        _init_weights(self)
+        self._init_weights()
+
+    def _init_weights(self):
+        conv_types = (nn.Conv1d, nn.Conv2d, nn.Conv3d)
+        for m in self.modules():
+            if isinstance(m, conv_types):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
+    def _to_grid(self, emb):
+        # emb: (B, L, E) -> (B, E, *grid)
+        b = emb.size(0)
+        if self.dim == 1:
+            return emb.permute(0, 2, 1)
+        if self.dim == 2:
+            h, w = self.grid
+            return emb.view(b, h, w, -1).permute(0, 3, 1, 2)
+        d, h, w = self.grid
+        return emb.view(b, d, h, w, -1).permute(0, 4, 1, 2, 3)
 
     def forward(self, x_seq, x_stat):
-        b = x_seq.size(0)
-        d, h, w = self.grid
-        emb = self.embedding(x_seq)               # (B, L, E)
-        emb = emb.view(b, d, h, w, -1).permute(0, 4, 1, 2, 3)  # (B, E, D, H, W)
+        emb = self.embedding(x_seq)          # (B, L, E)
+        x = self._to_grid(emb)               # (B, E, *grid)
 
         feats = []
-        for conv, deep in zip(self.conv, self.conv_deep):
-            c = torch.relu(conv(emb))
-            c = torch.relu(deep(c))
-            feats.append(torch.amax(c, dim=(2, 3, 4)))   # global max pool over D,H,W
+        for br in self.branches:
+            c = torch.relu(br["bn"](br["conv"](x)))
+            c = torch.relu(br["bn_deep"](br["deep"](c)))
+            # Global max pool over all spatial dims, regardless of dimensionality.
+            feats.append(c.flatten(2).amax(dim=2))
         cnn_features = torch.cat(feats, dim=1)
 
         stat_features = self.stat_fc(x_stat)
@@ -254,152 +173,220 @@ class HybridCNN3D(nn.Module):
         return self.classifier(combined).squeeze(1)
 
 
-MODELS = {
-    "1d": HybridCNN1D,
-    "2d": HybridCNN2D,
-    "3d": HybridCNN3D,
-}
+# ---------------------------------------------------------------------------
+# Evaluation helpers that return probabilities, so the threshold can be tuned.
+# ---------------------------------------------------------------------------
+def eval_probs(model, loader):
+    model.eval()
+    probs, labels = [], []
+    with torch.no_grad():
+        for seq, stat, y in loader:
+            out = model(seq.to(DEVICE), stat.to(DEVICE))
+            probs.extend(torch.sigmoid(out).cpu().numpy().tolist())
+            labels.extend(y.numpy().tolist())
+    return np.array(probs), np.array(labels)
+
+
+def best_threshold(probs, labels):
+    """Threshold in [0.05, 0.95] maximizing balanced accuracy on the given set."""
+    best_t, best_score = 0.5, -1.0
+    for t in np.linspace(0.05, 0.95, 19):
+        score = balanced_accuracy_score(labels, (probs >= t).astype(int))
+        if score > best_score:
+            best_score, best_t = score, float(t)
+    return best_t
+
+
+def make_loader(X_seq, X_stat, y, batch_size, shuffle=False):
+    ds = TensorDataset(torch.LongTensor(X_seq),
+                       torch.FloatTensor(X_stat),
+                       torch.FloatTensor(y))
+    return DataLoader(ds, batch_size=batch_size, shuffle=shuffle)
 
 
 # ---------------------------------------------------------------------------
-# Training / evaluation for a single variant. Mirrors train_model's trojan-detector
-# loop (warmup + plateau scheduler, early stopping on balanced accuracy).
+# Train + evaluate a single variant for a single seed.
 # ---------------------------------------------------------------------------
-def train_variant(kind, data, epochs, patience):
-    (X_seq_train, X_stat_train, y_train,
+def train_once(dim, data, epochs, patience, batch_size, pos_weight_arg):
+    (X_seq_tr, X_stat_tr, y_tr,
      X_seq_val, X_stat_val, y_val,
-     X_seq_test, X_stat_test, y_test) = data
+     X_seq_te, X_stat_te, y_te) = data
 
-    print(f"\n{'=' * 70}")
-    print(f"=== Training {kind.upper()} variant ===")
-    print(f"{'=' * 70}")
+    train_loader = make_loader(X_seq_tr, X_stat_tr, y_tr, batch_size, shuffle=True)
+    val_loader = make_loader(X_seq_val, X_stat_val, y_val, batch_size)
+    test_loader = make_loader(X_seq_te, X_stat_te, y_te, batch_size)
 
-    train_loader = DataLoader(
-        TensorDataset(torch.LongTensor(X_seq_train),
-                      torch.FloatTensor(X_stat_train),
-                      torch.FloatTensor(y_train)),
-        batch_size=BATCH_SIZE, shuffle=True)
-    val_loader = DataLoader(
-        TensorDataset(torch.LongTensor(X_seq_val),
-                      torch.FloatTensor(X_stat_val),
-                      torch.FloatTensor(y_val)),
-        batch_size=BATCH_SIZE)
-    test_loader = DataLoader(
-        TensorDataset(torch.LongTensor(X_seq_test),
-                      torch.FloatTensor(X_stat_test),
-                      torch.FloatTensor(y_test)),
-        batch_size=BATCH_SIZE)
-
-    model = MODELS[kind]().to(DEVICE)
+    model = HybridCNN_ND(dim).to(DEVICE)
     total_params = sum(p.numel() for p in model.parameters())
-    print(f"Device: {DEVICE} | Total Parameters: {total_params:,}")
-    if kind == "2d":
-        print(f"Reshape grid: {GRID_2D}")
-    elif kind == "3d":
-        print(f"Reshape grid: {GRID_3D}")
 
-    pos_weight = torch.tensor([0.75], dtype=torch.float32).to(DEVICE)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    # Balanced pos_weight = (#benign / #malicious) unless the user overrides it.
+    n_pos = max(1, int(np.sum(y_tr == 1)))
+    n_neg = int(np.sum(y_tr == 0))
+    pw = pos_weight_arg if pos_weight_arg is not None else (n_neg / n_pos)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pw], dtype=torch.float32).to(DEVICE))
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
 
-    warmup_epochs = 5
-    scheduler = torch.optim.lr_scheduler.LambdaLR(
-        optimizer, lambda e: (e + 1) / warmup_epochs if e < warmup_epochs else 1.0)
-    plateau_scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5,
-                                          patience=10, verbose=False)
+    warmup = 5
+    sched = torch.optim.lr_scheduler.LambdaLR(
+        optimizer, lambda e: (e + 1) / warmup if e < warmup else 1.0)
+    plateau = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=10)
 
-    best_val_acc = 0.0
-    patience_counter = 0
-    best_model_state = model.state_dict().copy()
+    best_val, patience_ctr = 0.0, 0
+    best_state = model.state_dict().copy()
 
     for epoch in range(epochs):
-        train_loss, train_acc = train_hybrid_epoch(model, train_loader, criterion, optimizer)
-        val_loss, val_acc, val_bal_acc, _, _ = evaluate_hybrid(model, val_loader, criterion)
+        tr_loss, tr_acc = train_hybrid_epoch(model, train_loader, criterion, optimizer)
+        val_probs, val_labels = eval_probs(model, val_loader)
+        val_bal = balanced_accuracy_score(val_labels, (val_probs >= 0.5).astype(int))
 
-        current_lr = optimizer.param_groups[0]['lr']
-        print(f"Epoch {epoch + 1:3d}/{epochs} | Train Loss: {train_loss:.4f} | "
-              f"Train Acc: {train_acc:.4f} | Val Loss: {val_loss:.4f} | "
-              f"Val Acc: {val_acc:.4f} | Val Bal.Acc: {val_bal_acc:.4f} | LR: {current_lr:.6f}")
+        print(f"  Epoch {epoch + 1:3d}/{epochs} | Train Loss {tr_loss:.4f} | "
+              f"Train Acc {tr_acc:.4f} | Val Bal.Acc {val_bal:.4f} | "
+              f"LR {optimizer.param_groups[0]['lr']:.6f}")
 
-        scheduler.step()
-        plateau_scheduler.step(val_bal_acc)
-
-        if val_bal_acc > best_val_acc:
-            best_val_acc = val_bal_acc
-            patience_counter = 0
-            best_model_state = model.state_dict().copy()
+        sched.step()
+        plateau.step(val_bal)
+        if val_bal > best_val:
+            best_val, patience_ctr, best_state = val_bal, 0, model.state_dict().copy()
         else:
-            patience_counter += 1
+            patience_ctr += 1
+            if patience_ctr >= patience:
+                print(f"  Early stopping at epoch {epoch + 1}")
+                break
 
-        if patience_counter >= patience:
-            model.load_state_dict(best_model_state)
-            print(f"Early stopping at epoch {epoch + 1}")
-            break
+    model.load_state_dict(best_state)
 
-    model.load_state_dict(best_model_state)
-    test_loss, test_acc, test_bal_acc, y_pred, y_true = evaluate_hybrid(model, test_loader, criterion)
+    # Tune the decision threshold on validation, then evaluate the test set with it.
+    val_probs, val_labels = eval_probs(model, val_loader)
+    thr = best_threshold(val_probs, val_labels)
+    test_probs, y_true = eval_probs(model, test_loader)
+    y_pred = (test_probs >= thr).astype(int)
 
-    print(f"\n*** {kind.upper()} Trojan Detector - Test Set Evaluation ***\n")
-    print(classification_report(y_true, y_pred, target_names=["Benign", "Malicious"], zero_division=0))
-    cm = confusion_matrix(y_true, y_pred)
-    print("*** Confusion Matrix ***")
-    print("\n\t\t  Predicted")
-    print("\t\t  Benign\tMalicious")
-    print(f"Actual Benign    |\t{int(cm[0][0])}\t\t{int(cm[0][1])}")
-    print(f"Actual Malicious |\t{int(cm[1][0])}\t\t{int(cm[1][1])}")
-
-    return {"kind": kind, "params": total_params,
-            "test_acc": test_acc, "test_bal_acc": test_bal_acc,
-            "best_val_bal_acc": best_val_acc}
+    metrics = {
+        "test_acc": float((y_pred == y_true).mean()),
+        "test_bal_acc": float(balanced_accuracy_score(y_true, y_pred)),
+        "malicious_recall": float(recall_score(y_true, y_pred, pos_label=1, zero_division=0)),
+        "malicious_f1": float(f1_score(y_true, y_pred, pos_label=1, zero_division=0)),
+        "threshold": thr,
+        "params": total_params,
+        "pos_weight": float(pw),
+    }
+    return model, metrics, (y_true, y_pred)
 
 
-def prepare_data():
-    """Build the same train/val/test tensors the production pipeline uses."""
-    benign_files, malicious_files, all_files = tm.collect_bitstreams()
-    X_sequences = tm.generate_sequences(all_files)
-    X_statistical = tm.generate_statistical_features(all_files)
-    y_trojan, _ = tm.define_labels(benign_files, malicious_files, all_files)
+# ---------------------------------------------------------------------------
+# Data prep: same pipeline as production, but the split seed is parameterized so
+# each experiment seed gets a fresh, reproducible train/val/test partition.
+# ---------------------------------------------------------------------------
+def prepare_data(seed):
+    benign, malicious, all_files = tm.collect_bitstreams()
+    X_seq = tm.generate_sequences(all_files)
+    X_stat = tm.generate_statistical_features(all_files)
+    y, _ = tm.define_labels(benign, malicious, all_files)
 
-    X_seq_train, X_seq_test, X_stat_train, X_stat_test, y_train, y_test = train_test_split(
-        X_sequences, X_statistical, y_trojan,
-        test_size=0.20, stratify=y_trojan, random_state=42)
+    X_seq_tr, X_seq_te, X_stat_tr, X_stat_te, y_tr, y_te = train_test_split(
+        X_seq, X_stat, y, test_size=0.20, stratify=y, random_state=seed)
 
     scaler = StandardScaler()
-    X_stat_train = scaler.fit_transform(X_stat_train)
-    X_stat_test = scaler.transform(X_stat_test)
+    X_stat_tr = scaler.fit_transform(X_stat_tr)
+    X_stat_te = scaler.transform(X_stat_te)
 
-    X_seq_trainval, X_seq_test_cnn, X_stat_trainval, X_stat_test_cnn, y_trainval, y_test_cnn = train_test_split(
-        X_seq_train, X_stat_train, y_train,
-        test_size=0.20, stratify=y_train, random_state=42)
-    X_seq_tr, X_seq_val, X_stat_tr, X_stat_val, y_tr, y_val = train_test_split(
-        X_seq_trainval, X_stat_trainval, y_trainval,
-        test_size=0.25, stratify=y_trainval, random_state=42)
+    X_seq_tv, _, X_stat_tv, _, y_tv, _ = train_test_split(
+        X_seq_tr, X_stat_tr, y_tr, test_size=0.20, stratify=y_tr, random_state=seed)
+    X_seq_t, X_seq_v, X_stat_t, X_stat_v, y_t, y_v = train_test_split(
+        X_seq_tv, X_stat_tv, y_tv, test_size=0.25, stratify=y_tv, random_state=seed)
 
-    return (X_seq_tr, X_stat_tr, y_tr,
-            X_seq_val, X_stat_val, y_val,
-            X_seq_test_cnn, X_stat_test_cnn, y_test_cnn)
+    return (X_seq_t, X_stat_t, y_t,
+            X_seq_v, X_stat_v, y_v,
+            X_seq_te, X_stat_te, y_te)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="1D/2D/3D CNN trojan-detector experiments")
-    parser.add_argument("--model", choices=["1d", "2d", "3d", "all"], default="all",
-                        help="Which variant(s) to train (default: all)")
-    parser.add_argument("--epochs", type=int, default=EPOCHS)
-    parser.add_argument("--patience", type=int, default=PATIENCE)
-    args = parser.parse_args()
+    p = argparse.ArgumentParser(description="1D/2D/3D CNN trojan-detector experiments")
+    p.add_argument("--model", choices=["1d", "2d", "3d", "all"], default="all")
+    p.add_argument("--seeds", type=int, default=1, help="Number of seeds/splits to average over")
+    p.add_argument("--epochs", type=int, default=EPOCHS)
+    p.add_argument("--patience", type=int, default=PATIENCE)
+    p.add_argument("--batch-size", type=int, default=BATCH_SIZE)
+    p.add_argument("--pos-weight", type=float, default=None,
+                   help="Override BCE pos_weight (default: balanced from data)")
+    p.add_argument("--outdir", default="cnn_experiments_out")
+    args = p.parse_args()
 
-    tm.set_seed(42)
-    data = prepare_data()
-
+    os.makedirs(args.outdir, exist_ok=True)
+    dims = {"1d": 1, "2d": 2, "3d": 3}
     kinds = ["1d", "2d", "3d"] if args.model == "all" else [args.model]
-    results = [train_variant(k, data, args.epochs, args.patience) for k in kinds]
 
-    print(f"\n{'=' * 70}")
-    print("=== Experiment Summary (test set) ===")
-    print(f"{'=' * 70}")
-    print(f"{'Variant':<8}{'Params':>14}{'Test Acc':>12}{'Test Bal.Acc':>16}")
-    for r in results:
-        print(f"{r['kind'].upper():<8}{r['params']:>14,}{r['test_acc']:>12.4f}{r['test_bal_acc']:>16.4f}")
+    print(f"Device: {DEVICE} | Seeds: {args.seeds} | Batch: {args.batch_size}")
+    print(f"Grids -> 1D {GRIDS[1]}  2D {GRIDS[2]}  3D {GRIDS[3]}")
+
+    rows = []          # per-seed metrics for CSV
+    best_per_kind = {} # kind -> (bal_acc, model, threshold)
+
+    for seed in range(args.seeds):
+        print(f"\n########## SEED {seed} ##########")
+        tm.set_seed(seed)
+        data = prepare_data(seed)
+
+        for kind in kinds:
+            print(f"\n=== {kind.upper()} | seed {seed} ===")
+            model, m, (y_true, y_pred) = train_once(
+                dims[kind], data, args.epochs, args.patience,
+                args.batch_size, args.pos_weight)
+
+            print(f"\n*** {kind.upper()} (seed {seed}) - Test Evaluation "
+                  f"(threshold={m['threshold']:.2f}) ***")
+            print(classification_report(y_true, y_pred,
+                                        target_names=["Benign", "Malicious"], zero_division=0))
+            cm = confusion_matrix(y_true, y_pred)
+            print("Confusion Matrix [rows=actual, cols=pred]:")
+            print(f"  Benign    -> Benign {cm[0][0]:4d} | Malicious {cm[0][1]:4d}")
+            print(f"  Malicious -> Benign {cm[1][0]:4d} | Malicious {cm[1][1]:4d}")
+            print(f"  Test Acc {m['test_acc']:.4f} | Bal.Acc {m['test_bal_acc']:.4f} | "
+                  f"Malicious Recall {m['malicious_recall']:.4f} | "
+                  f"Malicious F1 {m['malicious_f1']:.4f}")
+
+            rows.append({"variant": kind, "seed": seed, **m})
+
+            # Track the best model per variant across seeds (by balanced accuracy).
+            if kind not in best_per_kind or m["test_bal_acc"] > best_per_kind[kind][0]:
+                best_per_kind[kind] = (m["test_bal_acc"], model.state_dict(), m["threshold"])
+
+    # Save best model per variant + a JSON sidecar with its threshold/grid.
+    import json
+    for kind, (bal, state, thr) in best_per_kind.items():
+        path = os.path.join(args.outdir, f"{kind}_best.pt")
+        torch.save(state, path)
+        with open(os.path.join(args.outdir, f"{kind}_best.json"), "w") as f:
+            json.dump({"variant": kind, "dim": dims[kind], "grid": list(GRIDS[dims[kind]]),
+                       "threshold": thr, "best_test_bal_acc": bal}, f, indent=2)
+        print(f"\nSaved best {kind.upper()} model -> {path} (Bal.Acc {bal:.4f})")
+
+    # Write per-seed results CSV.
+    csv_path = os.path.join(args.outdir, "results.csv")
+    with open(csv_path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["variant", "seed", "test_acc", "test_bal_acc",
+                                          "malicious_recall", "malicious_f1", "threshold",
+                                          "pos_weight", "params"])
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+    print(f"\nWrote per-seed results -> {csv_path}")
+
+    # Summary: mean +/- std across seeds per variant.
+    print(f"\n{'=' * 78}")
+    print("=== Experiment Summary (mean +/- std across seeds, test set) ===")
+    print(f"{'=' * 78}")
+    print(f"{'Variant':<8}{'Params':>12}{'Test Acc':>18}{'Bal.Acc':>18}{'Mal.Recall':>18}")
+    for kind in kinds:
+        vr = [r for r in rows if r["variant"] == kind]
+        acc = np.array([r["test_acc"] for r in vr])
+        bal = np.array([r["test_bal_acc"] for r in vr])
+        rec = np.array([r["malicious_recall"] for r in vr])
+        params = vr[0]["params"]
+        print(f"{kind.upper():<8}{params:>12,}"
+              f"{f'{acc.mean():.4f}+/-{acc.std():.4f}':>18}"
+              f"{f'{bal.mean():.4f}+/-{bal.std():.4f}':>18}"
+              f"{f'{rec.mean():.4f}+/-{rec.std():.4f}':>18}")
 
 
 if __name__ == "__main__":
