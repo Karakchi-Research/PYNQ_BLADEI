@@ -1,0 +1,23 @@
+{
+  "split_schema": "naive_per_file_v1_diagnostic",
+  "seed": 2,
+  "manifest_id": "e680fc728129d5d2",
+  "note": "diagnostic only; duplicates cross sides by construction",
+  "exclusions": {
+    "ISCAS85": "ISCAS85 excluded from supervised regimes by policy: no benign counterpart in this checkout, different Vivado version (2025.2 vs 2023.2), single-class hold-out not comparable. Requires a matched rebuild before entering the primary table."
+  },
+  "train": {
+    "n_files": 871,
+    "n_unique": 133,
+    "n_components": 15,
+    "n_benign": 436,
+    "n_malicious": 435
+  },
+  "test": {
+    "n_files": 218,
+    "n_unique": 64,
+    "n_components": 15,
+    "n_benign": 109,
+    "n_malicious": 109
+  }
+}

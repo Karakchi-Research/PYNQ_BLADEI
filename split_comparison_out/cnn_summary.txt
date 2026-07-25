@@ -1,0 +1,4 @@
+=== Hybrid-CNN split-regime comparison (5 seeds; lofo averaged over 6 held-out families x seeds) ===
+grouped  HybridCNN            Bal.Acc 0.8532+/-0.0817 | Mal.Recall 0.8448+/-0.0806
+lofo     HybridCNN            Bal.Acc 0.5579+/-0.0932 | Mal.Recall 0.5142+/-0.4086
+naive    HybridCNN            Bal.Acc 0.8954+/-0.0214 | Mal.Recall 0.8055+/-0.0440

@@ -1,0 +1,24 @@
+{
+  "split_schema": "lofo_unique_payload_v1",
+  "seed": 1,
+  "family": "ITC99",
+  "manifest_id": "e680fc728129d5d2",
+  "exclusions": {
+    "ISCAS85": "ISCAS85 excluded from supervised regimes by policy: no benign counterpart in this checkout, different Vivado version (2025.2 vs 2023.2), single-class hold-out not comparable. Requires a matched rebuild before entering the primary table.",
+    "ISCAS89": "single-class after quarantine (4 benign / 0 malicious unique payloads); balanced accuracy undefined"
+  },
+  "train": {
+    "n_files": 89,
+    "n_unique": 89,
+    "n_components": 12,
+    "n_benign": 19,
+    "n_malicious": 70
+  },
+  "test": {
+    "n_files": 51,
+    "n_unique": 51,
+    "n_components": 3,
+    "n_benign": 17,
+    "n_malicious": 34
+  }
+}

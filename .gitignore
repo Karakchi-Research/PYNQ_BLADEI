@@ -1,1 +1,20 @@
 .DS_Store
+
+# Local raw logs and experiment caches
+cnn_experiments_out/
+phase05_cnn_run.log
+phase05_stat_run.log
+train_run.log
+phase05_out/*.npz
+split_comparison_out/*.npz
+split_comparison_out/*.log
+
+# Generated rebuild-pilot work products
+rebuild_pilot/builds/
+rebuild_pilot/vivado_env_capture/
+rebuild_pilot/generated/
+
+# Vivado temporary files
+rebuild_pilot/**/.Xil/
+rebuild_pilot/**/*.jou
+rebuild_pilot/**/vivado*.log

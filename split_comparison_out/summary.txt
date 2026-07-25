@@ -1,0 +1,7 @@
+=== Split-regime comparison (5 seeds; lofo averaged over 6 held-out families x seeds) ===
+grouped  LogisticRegression   Bal.Acc 0.8991+/-0.0268 | Mal.Recall 0.9211+/-0.0272
+grouped  RandomForest         Bal.Acc 0.9162+/-0.0362 | Mal.Recall 0.9184+/-0.0483
+lofo     LogisticRegression   Bal.Acc 0.5840+/-0.1395 | Mal.Recall 0.8033+/-0.1759
+lofo     RandomForest         Bal.Acc 0.4725+/-0.1023 | Mal.Recall 0.7080+/-0.3701
+naive    LogisticRegression   Bal.Acc 0.8771+/-0.0173 | Mal.Recall 0.8697+/-0.0416
+naive    RandomForest         Bal.Acc 0.8706+/-0.0098 | Mal.Recall 0.8844+/-0.0360

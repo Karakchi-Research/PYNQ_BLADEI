@@ -1,0 +1,125 @@
+{
+  "split_schema": "lofo_unique_payload_v1",
+  "seed": 0,
+  "manifest_id": "e680fc728129d5d2",
+  "n_files_total": 140,
+  "n_unique_payloads_total": 140,
+  "n_components_total": 15,
+  "quarantined_excluded": {
+    "n": 169,
+    "reason": "no_bitstream_trace"
+  },
+  "payload_overlap_train_test": [],
+  "config": {
+    "model": "HybridCNN (train_model.py, frozen)",
+    "sequence_length": 4096,
+    "embedding_dim": 32,
+    "dropout": 0.2,
+    "batch_size": 32,
+    "epochs_max": 150,
+    "patience": 50,
+    "learning_rate": 0.001,
+    "pos_weight": 0.75,
+    "fresh_weights_and_scaler": true,
+    "compat_shims": [
+      "ReduceLROnPlateau: drop removed verbose kwarg",
+      "BCEWithLogitsLoss: pos_weight to active device"
+    ],
+    "exclusions": {
+      "ISCAS85": "ISCAS85 excluded from supervised regimes by policy: no benign counterpart in this checkout, different Vivado version (2025.2 vs 2023.2), single-class hold-out not comparable. Requires a matched rebuild before entering the primary table."
+    },
+    "regime": "cnn_E",
+    "family": "CRYPTO",
+    "invalid_reason": null
+  },
+  "train": {
+    "n_files": 69,
+    "n_unique_payloads": 69,
+    "n_components": 12,
+    "n_benign": 27,
+    "n_malicious": 42,
+    "families": [
+      "BUS/DISPLAY",
+      "COMMS",
+      "ISCAS89",
+      "ITC99",
+      "MCU/CPU"
+    ],
+    "designs": [
+      "EthernetMAC10GE_T700",
+      "PIC16F84_T100",
+      "PIC16F84_T200",
+      "RS232_T100",
+      "RS232_T1000",
+      "RS232_T1300",
+      "RS232_T1600",
+      "RS232_T2100",
+      "RS232_T2200",
+      "RS232_T2300",
+      "b15_T100",
+      "b15_T300",
+      "b15_T400",
+      "b19_T100",
+      "b19_T200",
+      "b19_T300",
+      "b19_T400",
+      "b19_T500",
+      "s15850_T100",
+      "s35932_T100",
+      "s38417_T100",
+      "s38584_T100",
+      "vga_lcd_T100",
+      "wb_conmax_T200"
+    ]
+  },
+  "val": {
+    "n_files": 2,
+    "n_unique_payloads": 2,
+    "n_components": 1,
+    "n_benign": 1,
+    "n_malicious": 1,
+    "families": [
+      "BUS/DISPLAY"
+    ],
+    "designs": [
+      "wb_conmax_T100"
+    ]
+  },
+  "test": {
+    "n_files": 69,
+    "n_unique_payloads": 69,
+    "n_components": 2,
+    "n_benign": 8,
+    "n_malicious": 61,
+    "families": [
+      "CRYPTO"
+    ],
+    "designs": [
+      "AES_T100",
+      "AES_T1000",
+      "AES_T1100",
+      "AES_T1200",
+      "AES_T1300",
+      "AES_T1400",
+      "AES_T1500",
+      "AES_T1600",
+      "AES_T1700",
+      "AES_T1800",
+      "AES_T1900",
+      "AES_T200",
+      "AES_T2000",
+      "AES_T2300",
+      "AES_T2400",
+      "AES_T2500",
+      "AES_T2700",
+      "AES_T300",
+      "AES_T700",
+      "AES_T800",
+      "AES_T900",
+      "BasicRSA_T100",
+      "BasicRSA_T200",
+      "BasicRSA_T300",
+      "BasicRSA_T400"
+    ]
+  }
+}

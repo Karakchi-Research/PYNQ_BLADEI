@@ -1,0 +1,111 @@
+{
+  "finding": "duplicate_leakage_across_splits",
+  "confirmed": true,
+  "claim": {
+    "grouped_test_duplicate_share_range": [
+      0.51,
+      0.72
+    ],
+    "lofo_duplicate_share": 0.0
+  },
+  "data_dir": "/Users/carter/Desktop/Karakchi-Research/trusthub_bitstreams_v4",
+  "n_files": 1383,
+  "n_payload_classes": 431,
+  "payloads_spanning_multiple_design_keys": 56,
+  "max_design_keys_per_payload": 25,
+  "payloads_spanning_multiple_families": 0,
+  "grouped_per_seed": [
+    {
+      "seed": 0,
+      "n_test": 234,
+      "n_test_exact_dup_of_train": 134,
+      "share": 0.5726,
+      "label_contradicts_train_copy": 0,
+      "design_keys_disjoint": true
+    },
+    {
+      "seed": 1,
+      "n_test": 329,
+      "n_test_exact_dup_of_train": 235,
+      "share": 0.7143,
+      "label_contradicts_train_copy": 6,
+      "design_keys_disjoint": true
+    },
+    {
+      "seed": 2,
+      "n_test": 263,
+      "n_test_exact_dup_of_train": 163,
+      "share": 0.6198,
+      "label_contradicts_train_copy": 0,
+      "design_keys_disjoint": true
+    },
+    {
+      "seed": 3,
+      "n_test": 243,
+      "n_test_exact_dup_of_train": 139,
+      "share": 0.572,
+      "label_contradicts_train_copy": 1,
+      "design_keys_disjoint": true
+    },
+    {
+      "seed": 4,
+      "n_test": 251,
+      "n_test_exact_dup_of_train": 128,
+      "share": 0.51,
+      "label_contradicts_train_copy": 0,
+      "design_keys_disjoint": true
+    }
+  ],
+  "lofo_control": [
+    {
+      "family": "BUS/DISPLAY",
+      "n_test": 40,
+      "n_test_exact_dup_of_train": 0,
+      "share": 0.0
+    },
+    {
+      "family": "COMMS",
+      "n_test": 330,
+      "n_test_exact_dup_of_train": 0,
+      "share": 0.0
+    },
+    {
+      "family": "CRYPTO",
+      "n_test": 290,
+      "n_test_exact_dup_of_train": 0,
+      "share": 0.0
+    },
+    {
+      "family": "ISCAS85",
+      "n_test": 294,
+      "n_test_exact_dup_of_train": 0,
+      "share": 0.0
+    },
+    {
+      "family": "ISCAS89",
+      "n_test": 100,
+      "n_test_exact_dup_of_train": 0,
+      "share": 0.0
+    },
+    {
+      "family": "ITC99",
+      "n_test": 289,
+      "n_test_exact_dup_of_train": 0,
+      "share": 0.0
+    },
+    {
+      "family": "MCU/CPU",
+      "n_test": 40,
+      "n_test_exact_dup_of_train": 0,
+      "share": 0.0
+    }
+  ],
+  "checks": {
+    "E1_classes_fewer_than_files": true,
+    "E2_design_keys_disjoint_all_seeds": true,
+    "E3_payloads_span_multiple_design_keys": true,
+    "E3_every_seed_leaks_duplicates": true,
+    "E3_share_in_claimed_range": true,
+    "E4_lofo_has_no_duplicate_leakage": true
+  }
+}

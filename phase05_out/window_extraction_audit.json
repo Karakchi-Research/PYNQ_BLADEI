@@ -1,0 +1,54 @@
+{
+  "generated": "2026-07-25T17:25:05.068684+00:00",
+  "manifest_id": "e680fc728129d5d2",
+  "parser_version": "bitstream_io_v1",
+  "profile": "zynq7020_trusthub_v4",
+  "extraction_config": {
+    "window_frames": 8,
+    "frame_bytes": 404,
+    "window_bytes": 3232,
+    "expected_frames_per_file": 10008,
+    "expected_windows_per_file": 1251,
+    "partial_windows_expected": 0
+  },
+  "n_files": 1383,
+  "total_windows": 1730133,
+  "per_family": {
+    "CRYPTO": {
+      "files": 290,
+      "windows": 362790
+    },
+    "COMMS": {
+      "files": 330,
+      "windows": 412830
+    },
+    "MCU/CPU": {
+      "files": 40,
+      "windows": 50040
+    },
+    "ITC99": {
+      "files": 289,
+      "windows": 361539
+    },
+    "ISCAS89": {
+      "files": 100,
+      "windows": 125100
+    },
+    "BUS/DISPLAY": {
+      "files": 40,
+      "windows": 50040
+    },
+    "ISCAS85": {
+      "files": 294,
+      "windows": 367794
+    }
+  },
+  "invariants": [
+    "profile_validated_payload",
+    "whole_frame_count_10008",
+    "full_windows_1251_no_partial",
+    "byte_coverage_4043232",
+    "window_histograms_sum_to_payload_histogram"
+  ],
+  "all_passed": true
+}

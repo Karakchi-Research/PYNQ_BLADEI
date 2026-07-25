@@ -1,0 +1,115 @@
+{
+  "finding": "identical_benign_malicious_payloads",
+  "confirmed": true,
+  "claim": {
+    "malicious_identical_to_benign": 169,
+    "malicious_total": 838,
+    "contradictory_clusters": 11,
+    "files_in_contradictory_clusters": 367,
+    "bayes_ceiling_balanced_accuracy": 0.9166
+  },
+  "data_dir": "/Users/carter/Desktop/Karakchi-Research/trusthub_bitstreams_v4",
+  "n_benign": 545,
+  "n_malicious": 838,
+  "n_exact_classes": 431,
+  "full_payload_comparisons": 132337,
+  "contradictory_classes": 11,
+  "files_in_contradictory_classes": 367,
+  "malicious_identical_to_benign": 169,
+  "ghosts_by_host_design": {
+    "AES": 1,
+    "BasicRSA": 5,
+    "EthernetMAC10GE": 38,
+    "RS232": 60,
+    "s15850": 5,
+    "s35932": 15,
+    "s38417": 15,
+    "s38584": 15,
+    "vga_lcd": 5,
+    "wb_conmax": 10
+  },
+  "unavoidable_benign_errors": 20,
+  "unavoidable_malicious_errors": 109,
+  "bayes_ceiling_balanced_accuracy": 0.916616,
+  "spot_check": [
+    {
+      "malicious": "AES_T200_Trojan.bit",
+      "benign": "AES_T1000_v2.bit",
+      "malicious_payload_range": [
+        335,
+        4043567
+      ],
+      "benign_payload_range": [
+        339,
+        4043571
+      ],
+      "bytes_compared": 4043232,
+      "identical": true
+    },
+    {
+      "malicious": "BasicRSA_T100_Trojan.bit",
+      "benign": "BasicRSA_T100.bit",
+      "malicious_payload_range": [
+        335,
+        4043567
+      ],
+      "benign_payload_range": [
+        335,
+        4043567
+      ],
+      "bytes_compared": 4043232,
+      "identical": true
+    },
+    {
+      "malicious": "BasicRSA_T100_Trojan_v2.bit",
+      "benign": "BasicRSA_T100.bit",
+      "malicious_payload_range": [
+        335,
+        4043567
+      ],
+      "benign_payload_range": [
+        335,
+        4043567
+      ],
+      "bytes_compared": 4043232,
+      "identical": true
+    },
+    {
+      "malicious": "BasicRSA_T100_Trojan_v3.bit",
+      "benign": "BasicRSA_T100.bit",
+      "malicious_payload_range": [
+        335,
+        4043567
+      ],
+      "benign_payload_range": [
+        335,
+        4043567
+      ],
+      "bytes_compared": 4043232,
+      "identical": true
+    },
+    {
+      "malicious": "BasicRSA_T100_Trojan_v4.bit",
+      "benign": "BasicRSA_T100_v4.bit",
+      "malicious_payload_range": [
+        335,
+        4043567
+      ],
+      "benign_payload_range": [
+        335,
+        4043567
+      ],
+      "bytes_compared": 4043232,
+      "identical": true
+    }
+  ],
+  "checks": {
+    "C1_exact_comparisons_only": true,
+    "C2_ghost_count_matches_claim": true,
+    "C2_contradictory_clusters_match_claim": true,
+    "C2_files_in_clusters_match_claim": true,
+    "C3_ceiling_matches_claim": true,
+    "C3_ceiling_below_one": true,
+    "C4_spot_checks_all_identical": true
+  }
+}

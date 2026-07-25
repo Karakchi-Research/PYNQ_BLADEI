@@ -1,0 +1,23 @@
+{
+  "experiment": "cnn_split_comparison",
+  "model": "HybridCNN (train_model.py, unmodified)",
+  "regime": "lofo",
+  "held_out_family": "ISCAS85",
+  "device": "cuda",
+  "compat_shims": [
+    "ReduceLROnPlateau: drop removed verbose kwarg",
+    "BCEWithLogitsLoss: pos_weight moved to active device"
+  ],
+  "sequence_length": 4096,
+  "window_size": null,
+  "embedding_dim": 32,
+  "dropout": 0.2,
+  "batch_size": 32,
+  "epochs_max": 150,
+  "patience": 50,
+  "learning_rate": 0.001,
+  "pos_weight": 0.75,
+  "seed": 4,
+  "skipped": true,
+  "reason": "no files for this family in checkout"
+}
