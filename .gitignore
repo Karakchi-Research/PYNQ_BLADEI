@@ -1,20 +1,49 @@
 .DS_Store
+__pycache__/
+*.pyc
 
-# Local raw logs and experiment caches
+# ---------------------------------------------------------------------------
+# Generated output. Every directory below is REPRODUCIBLE by running the
+# scripts in this repo against the bitstream corpus; none of it is source.
+# Research writing, reports and paper drafts are kept outside the repo.
+# ---------------------------------------------------------------------------
+
+# Corpus index, audit logs, experiment results
+corpus_out/
+leakage_audit_out/
+phase05_out/
+split_audit_out/
+split_comparison_out/
 cnn_experiments_out/
-phase05_cnn_run.log
-phase05_stat_run.log
-train_run.log
-phase05_out/*.npz
-split_comparison_out/*.npz
-split_comparison_out/*.log
+stat_baseline_out/
 
-# Generated rebuild-pilot work products
-rebuild_pilot/builds/
+# Localization corpora and results
+localization_corpus/
+localization_corpus_b15/
+
+# Figures (regenerate with make_figures.py)
+figures/
+
+# Rebuild-pilot build products. The .tcl / .sh / .py scripts in
+# rebuild_pilot/ ARE tracked -- they are the build tooling. Everything the
+# builds emit is not.
+rebuild_pilot/pilot_artifacts/
+rebuild_pilot/pilot_evidence/
 rebuild_pilot/vivado_env_capture/
-rebuild_pilot/generated/
+rebuild_pilot/*.json
+rebuild_pilot/*.csv
+rebuild_pilot/*.tsv
+rebuild_pilot/*.md
 
-# Vivado temporary files
-rebuild_pilot/**/.Xil/
-rebuild_pilot/**/*.jou
-rebuild_pilot/**/vivado*.log
+# Vivado scratch
+*.jou
+vivado*.log
+.Xil/
+
+# Run logs and caches
+*.log
+*.npz
+*.dcp
+*.bit
+*.ll
+PYNQ_BLADEI.tar.gz

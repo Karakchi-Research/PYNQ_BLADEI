@@ -1,0 +1,7 @@
+# AES-T1000 trojan: explicit hierarchy in TjIn/top.v --
+#   aes_128_trojan AES, Trojan_Trigger Tj_Trigger, TSC Trojan (+ lfsr inside TSC).
+# The benign build instantiates plain aes_128 and has none of these.
+*Trojan*
+*TSC*
+*Tj_Trig*
+*lfsr*

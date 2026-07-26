@@ -1,0 +1,9 @@
+# b15-T200 trojan (layout-level ECO, TjIn/b15_eco.v): six cells UTj1..UTj6 that
+# halve the clock frequency when 0xFF is observed on address bits 8-15.
+# Trigger/payload nets: TjTigger (sic, upstream spelling), CLOCK_G1B1I1_Tj,
+# CLOCK_G1B1I1_TjN, CLOCK_G1B1I1_MUXed. Benign b15_scan.v has none of these.
+*UTj*
+*TjTigger*
+*_Tj
+*_TjN
+*MUXed*

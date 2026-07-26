@@ -1,0 +1,6 @@
+# PIC16F84-T100 trojan: counter-triggered program-address modifier added in
+# TjIn/risc16f84.v ("Trojan Signals": reg [12:0] Counter, reg [12:0] prog_adr_o).
+# The identifier "Counter" (capital C) does not occur anywhere in the benign
+# risc16f84.v, so the benign build is the control and must report zero.
+*Counter*
+*prog_adr_o*
