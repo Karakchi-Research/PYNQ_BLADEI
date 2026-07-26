@@ -8,7 +8,9 @@
 #                  feasibility), as opposed to trojan variants of the same host;
 #                - which benchmark directories are hardware-TROJAN benchmarks
 #                  (TjFree/TjIn RTL pair) versus LOGIC-OBFUSCATION benchmarks
-#                  (key-based locking; a different threat model entirely);
+#                  (key-based locking). Trust-Hub distributes and labels both
+#                  categories correctly; they were gathered together during
+#                  corpus assembly, so this separates them again.
 #                - each host's current corpus status: payload component, unique
 #                  payload count, and how many of its malicious files are
 #                  audited no-bitstream-trace quarantine cases;

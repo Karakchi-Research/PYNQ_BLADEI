@@ -18,12 +18,16 @@
 #      families (both classes present post-quarantine). PRIMARY
 #      generalization result.
 #
-#              ISCAS85 is excluded from ALL supervised regimes here by
-#              explicit policy (no benign counterpart in this checkout; built
-#              under a different Vivado version; single-class hold-out is not
-#              a comparable result) -- recorded in the logs, not silently
-#              skipped. Ineligible splits are logged with the exact reason,
-#              never forced.
+#              ISCAS85 is excluded from ALL supervised regimes here: those
+#              files are logic-obfuscation benchmarks that Trust-Hub labels
+#              correctly under its obfuscation category and that entered this
+#              corpus's malicious class during assembly. Logic locking is a
+#              protection technique, not an attack, so results are scoped to
+#              the Trojan benchmarks. (They also have no benign counterpart
+#              here and were built under a different Vivado version.) The
+#              exclusion is recorded in the logs, not silently skipped, and
+#              ineligible splits are logged with the exact reason, never
+#              forced.
 #
 #              Models: RandomForest + LogisticRegression exactly as
 #              stat_baseline.py (500 trees / max_iter 5000, class_weight
@@ -62,11 +66,17 @@ from split_utils import (SPLIT_SCHEMA_PAYLOAD_COMPONENT,
                          payload_component_labels, log_split_v2)
 
 NAIVE_SCHEMA = "naive_per_file_v1_diagnostic"
-ISCAS85_EXCLUSION = ("ISCAS85 excluded from supervised regimes by policy: "
-                     "no benign counterpart in this checkout, different "
-                     "Vivado version (2025.2 vs 2023.2), single-class "
-                     "hold-out not comparable. Requires a matched rebuild "
-                     "before entering the primary table.")
+ISCAS85_EXCLUSION = ("ISCAS85 excluded from supervised regimes: these are "
+                     "logic-obfuscation / logic-locking benchmarks, which "
+                     "Trust-Hub distributes and labels as such under its "
+                     "obfuscation category; they entered this corpus's "
+                     "malicious class during assembly. Logic locking is a "
+                     "protection technique, not an attack, so results are "
+                     "scoped to the Trojan benchmarks. They additionally "
+                     "have no benign counterpart in this checkout and were "
+                     "built under a different Vivado version (2025.2 vs "
+                     "2023.2), so a single-class hold-out would not be a "
+                     "comparable result either.")
 
 
 def content_hash(obj, drop=("generated", "index_sha256")):
