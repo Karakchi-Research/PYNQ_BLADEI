@@ -241,6 +241,7 @@ add_files -fileset sources_1 [list \
  [file normalize "${origin_dir}/trusthub_benchmarks/AES-T100/src/TjFree/table.v"]\
  [file normalize "${origin_dir}/trusthub_benchmarks/AES-T100/src/TjFree/round.v"]\
  [file normalize "${origin_dir}/trusthub_benchmarks/AES-T100/src/TjFree/aes_128.v"]\
+ [file normalize "${origin_dir}/trusthub_benchmarks/RS232-T2400/src/TjIn/inc.h"]\
 ]
 
 # Set 'sources_1' fileset file properties for remote files
@@ -326,6 +327,17 @@ set_property -name "used_in_implementation" -value "1" -objects $file_obj
 set_property -name "used_in_simulation" -value "1" -objects $file_obj
 set_property -name "used_in_synthesis" -value "1" -objects $file_obj
 
+set file [file normalize "${origin_dir}/trusthub_benchmarks/RS232-T2400/src/TjIn/inc.h"]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "$file"]]
+set_property -name "file_type" -value "Verilog Header" -objects $file_obj
+set_property -name "is_enabled" -value "1" -objects $file_obj
+set_property -name "is_global_include" -value "0" -objects $file_obj
+set_property -name "library" -value "xil_defaultlib" -objects $file_obj
+set_property -name "path_mode" -value "RelativeFirst" -objects $file_obj
+set_property -name "used_in" -value "synthesis simulation" -objects $file_obj
+set_property -name "used_in_simulation" -value "1" -objects $file_obj
+set_property -name "used_in_synthesis" -value "1" -objects $file_obj
+
 
 # Set 'sources_1' fileset properties
 set obj [get_filesets sources_1]
@@ -336,7 +348,7 @@ set_property -name "edif_extra_search_paths" -value "" -objects $obj
 set_property -name "elab_link_dcps" -value "1" -objects $obj
 set_property -name "elab_load_timing_constraints" -value "1" -objects $obj
 set_property -name "generic" -value "" -objects $obj
-set_property -name "include_dirs" -value "[file normalize "$origin_dir/trusthub_benchmarks/AES-T100/"]" -objects $obj
+set_property -name "include_dirs" -value "[file normalize "$origin_dir/trusthub_benchmarks/AES-T100/"] [file normalize "$origin_dir/trusthub_benchmarks/RS232-T2400/src/TjIn/"]" -objects $obj
 set_property -name "lib_map_file" -value "" -objects $obj
 set_property -name "loop_count" -value "1000" -objects $obj
 set_property -name "name" -value "sources_1" -objects $obj
