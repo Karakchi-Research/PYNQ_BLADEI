@@ -1,0 +1,8 @@
+# PIC16F84 trojan (T100-T400): a counter-triggered payload inlined into
+# risc16f84.v. The benign build instantiates the plain core and has none of
+# these. Discriminativeness is decided against the TjFree control by
+# retention_screen.py; these are the candidate markers.
+*Counter*
+*Trojan_Trigger_Out*
+*Trojan*
+*prog_adr_o*

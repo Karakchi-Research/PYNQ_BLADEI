@@ -60,6 +60,10 @@ if {$mode eq "benign"} {
     open_checkpoint $in_dcp
     route_design -directive $route_dir
     report_route_status -file $outdir/reports/${tag}_route_status.rpt
+    # Timing summary: the slack sweep (l3_slack_sweep.sh) is only
+    # interpretable against measured WNS, and this costs nothing. Guarded so a
+    # reporting failure can never invalidate a build.
+    catch {report_timing_summary -file $outdir/reports/${tag}_timing.rpt}
     write_bitstream -force -logic_location_file $outdir/${tag}.bit
     puts "=== BENIGN POPULATION MEMBER DONE: $tag ($route_dir) ==="
     exit 0
@@ -211,6 +215,7 @@ close $fh
 
 report_route_status -file $outdir/reports/${tag}_route_status.rpt
 report_utilization  -file $outdir/reports/${tag}_utilization.rpt
+catch {report_timing_summary -file $outdir/reports/${tag}_timing.rpt}
 write_checkpoint -force $outdir/${tag}_routed.dcp
 write_bitstream -force -logic_location_file $outdir/${tag}.bit
 puts "=== IMPLANT DONE: $tag ==="
