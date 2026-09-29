@@ -18,8 +18,14 @@
 #              without -- was retrieved, so a broken fetch never becomes the
 #              default.
 #
+#              The database stays PINNED: when CURRENT exists, files missing
+#              from that SHA folder are downloaded AT THAT SHA and merged into
+#              its manifest; files already present are left untouched. A new
+#              SHA is resolved only with --latest (or when no CURRENT exists
+#              yet).
+#
 # Usage:
-#   python3 fetch_prjxray_db.py [--cache DIR] [--ref master]
+#   python3 fetch_prjxray_db.py [--cache DIR] [--latest [--ref master]]
 
 import argparse
 import hashlib
@@ -36,7 +42,7 @@ PART_YAML = "zynq7/xc7z020clg400-1/part.yaml"
 FILES = [PART_YAML, "zynq7/xc7z020/tilegrid.json"] + [
     "zynq7/segbits_%s.db" % t for t in (
         "clbll_l", "clbll_r", "clblm_l", "clblm_r", "int_l", "int_r",
-        "bram_l", "bram_r", "dsp_l", "dsp_r")]
+        "bram_l", "bram_r", "dsp_l", "dsp_r", "hclk_l", "hclk_r")]
 USER_AGENT = "bladei-fetch-prjxray-db"
 
 
@@ -85,19 +91,53 @@ def _write_atomic(path, text):
     os.replace(tmp, path)
 
 
+def pinned_sha(cache_root):
+    """SHA named by <cache_root>/CURRENT, or None if there is none yet."""
+    current = os.path.join(cache_root, "CURRENT")
+    if not os.path.exists(current):
+        return None
+    with open(current) as fh:
+        sha = fh.read().strip()
+    if len(sha) != 40 or any(c not in "0123456789abcdef" for c in sha):
+        raise ValueError("%s holds a malformed SHA: %r" % (current, sha))
+    return sha
+
+
 def main():
     p = argparse.ArgumentParser(
         description="Download a pinned prjxray-db slice for the Zynq-7020")
     p.add_argument("--cache", default=CACHE_ROOT)
-    p.add_argument("--ref", default="master")
+    p.add_argument("--latest", action="store_true",
+                   help="resolve --ref to a new SHA instead of using CURRENT")
+    p.add_argument("--ref", default="master",
+                   help="branch/tag resolved with --latest (default master)")
     args = p.parse_args()
 
-    sha = resolve_sha(args.ref)
+    sha = None if args.latest else pinned_sha(args.cache)
+    pinned = sha is not None
+    if not pinned:
+        sha = resolve_sha(args.ref)
     dest_root = os.path.join(args.cache, sha)
-    print("%s@%s -> %s" % (REPO, sha, dest_root))
+    print("%s@%s -> %s (%s)" % (REPO, sha, dest_root,
+                                "pinned by CURRENT" if pinned
+                                else "resolved from %s" % args.ref))
+
+    manifest_path = os.path.join(dest_root, "manifest.json")
+    old = {}
+    if os.path.exists(manifest_path):
+        with open(manifest_path) as fh:
+            old = json.load(fh)
+        if old.get("sha") != sha:
+            sys.exit("%s records sha %r, folder is %s"
+                     % (manifest_path, old.get("sha"), sha))
 
     files, missing = {}, []
     for rel in FILES:
+        have = old.get("files", {}).get(rel)
+        if have and os.path.exists(os.path.join(dest_root, rel)):
+            files[rel] = have
+            print("  present  %s" % rel)
+            continue
         got = fetch_file(sha, rel, dest_root)
         if got is None:
             missing.append(rel)
@@ -106,16 +146,23 @@ def main():
         files[rel] = {"sha256": got[0], "bytes": got[1]}
         print("  %8d %s" % (got[1], rel))
 
-    manifest = {"repo": REPO, "ref": args.ref, "sha": sha,
-                "fetched": datetime.now(timezone.utc).isoformat(),
-                "files": files, "missing": missing}
+    now = datetime.now(timezone.utc).isoformat()
+    kept = {rel: v for rel, v in old.get("files", {}).items()
+            if rel not in files}
+    manifest = {"repo": REPO, "ref": old.get("ref", args.ref), "sha": sha,
+                "fetched": old.get("fetched", now), "updated": now,
+                "files": dict(sorted({**kept, **files}.items())),
+                "missing": missing}
     os.makedirs(dest_root, exist_ok=True)
-    _write_atomic(os.path.join(dest_root, "manifest.json"),
-                  json.dumps(manifest, indent=2) + "\n")
+    _write_atomic(manifest_path, json.dumps(manifest, indent=2) + "\n")
 
-    print("\n%d fetched, %d missing (404)" % (len(files), len(missing)))
+    print("\n%d present/fetched, %d missing (404)" % (len(files),
+                                                      len(missing)))
     for rel in missing:
         print("  missing: %s" % rel)
+    if pinned:
+        print("CURRENT unchanged (%s)" % sha)
+        return
     if PART_YAML not in files:
         sys.exit("part.yaml not retrieved -- CURRENT left unchanged")
     _write_atomic(os.path.join(args.cache, "CURRENT"), sha + "\n")
